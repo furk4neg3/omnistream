@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "EnrichedEvent",
+  "type": "object",
+  "required": [
+    "event_id",
+    "ticket_id",
+    "tenant_id",
+    "timestamp",
+    "source",
+    "severity",
+    "product",
+    "customer_tier",
+    "language",
+    "clean_text",
+    "chunks",
+    "metadata"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string"
+    },
+    "ticket_id": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "string"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "product": {
+      "type": "string"
+    },
+    "customer_tier": {
+      "type": "string",
+      "enum": ["free", "pro", "enterprise"]
+    },
+    "language": {
+      "type": "string"
+    },
+    "clean_text": {
+      "type": "string",
+      "description": "Normalized text used for chunking and embedding"
+    },
+    "chunks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["chunk_id", "text", "chunk_index"],
+        "properties": {
+          "chunk_id": {
+            "type": "string"
+          },
+          "chunk_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "text": {
+            "type": "string"
+          },
+          "token_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["ingested_at", "schema_version"],
+      "properties": {
+        "ingested_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "schema_version": {
+          "type": "string"
+        },
+        "processing_version": {
+          "type": "string"
+        },
+        "router_label": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

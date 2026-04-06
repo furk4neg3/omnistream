@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RawEvent",
+  "type": "object",
+  "required": [
+    "event_id",
+    "source",
+    "timestamp",
+    "tenant_id",
+    "payload"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Unique event identifier"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["support_ticket"],
+      "description": "Origin of the event"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event creation timestamp in ISO 8601"
+    },
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant or organization identifier"
+    },
+    "payload": {
+      "type": "object",
+      "required": [
+        "ticket_id",
+        "title",
+        "body",
+        "severity",
+        "product",
+        "customer_tier"
+      ],
+      "properties": {
+        "ticket_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        },
+        "product": {
+          "type": "string"
+        },
+        "customer_tier": {
+          "type": "string",
+          "enum": ["free", "pro", "enterprise"]
+        },
+        "language": {
+          "type": "string",
+          "default": "en"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

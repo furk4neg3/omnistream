@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QueryResponse",
+  "type": "object",
+  "required": [
+    "query",
+    "tenant_id",
+    "results",
+    "timing_ms",
+    "used_rag"
+  ],
+  "properties": {
+    "query": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "answer": {
+      "type": "string"
+    },
+    "used_rag": {
+      "type": "boolean"
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "chunk_id",
+          "ticket_id",
+          "score",
+          "text",
+          "metadata"
+        ],
+        "properties": {
+          "chunk_id": {
+            "type": "string"
+          },
+          "ticket_id": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "text": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "required": ["severity", "product", "timestamp"],
+            "properties": {
+              "severity": {
+                "type": "string"
+              },
+              "product": {
+                "type": "string"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "customer_tier": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "timing_ms": {
+      "type": "object",
+      "required": ["retrieval"],
+      "properties": {
+        "retrieval": {
+          "type": "number"
+        },
+        "generation": {
+          "type": "number"
+        },
+        "total": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

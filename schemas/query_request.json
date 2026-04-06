@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QueryRequest",
+  "type": "object",
+  "required": ["query", "tenant_id"],
+  "properties": {
+    "query": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "top_k": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20,
+      "default": 5
+    },
+    "filters": {
+      "type": "object",
+      "properties": {
+        "severity": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"]
+          }
+        },
+        "product": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "customer_tier": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["free", "pro", "enterprise"]
+          }
+        },
+        "start_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end_time": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "use_rag": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "additionalProperties": false
+}
