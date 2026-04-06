@@ -1,4 +1,4 @@
-# 🌊 OmniStream
+# OmniStream
 
 ![Status: Work in Progress](https://img.shields.io/badge/Status-Work_in_Progress-orange.svg)
 ![Architecture: Microservices](https://img.shields.io/badge/Architecture-Microservices-blue.svg)
@@ -12,7 +12,7 @@ Crucially, the system features a self-healing MLOps pipeline that monitors its o
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
 * **Real-Time Data Streaming:** Event-driven ingestion pipeline handling live continuous data rather than static batches.
 * **Agentic Orchestration:** Specialized AI agents for classifying, routing, processing, and summarizing incoming data streams.
@@ -22,7 +22,7 @@ Crucially, the system features a self-healing MLOps pipeline that monitors its o
 
 ---
 
-## 🏗️ Architecture Design (AWS blueprint)
+## Architecture Design (AWS blueprint)
 
 OmniStream is decoupled into four highly scalable layers:
 
@@ -49,7 +49,7 @@ OmniStream is decoupled into four highly scalable layers:
 
 ---
 
-## 🛠️ Current Project Status: Active Development
+## Current Project Status: Active Development
 
 OmniStream is currently a **Work in Progress**. The architecture is defined, and core microservices are actively being built and integrated. 
 
@@ -61,7 +61,7 @@ OmniStream is currently a **Work in Progress**. The architecture is defined, and
 
 ---
 
-## 💻 Getting Started (Draft)
+## Getting Started (Draft)
 
 *(Instructions will be updated as the CI/CD pipeline and IaC configurations are finalized).*
 
