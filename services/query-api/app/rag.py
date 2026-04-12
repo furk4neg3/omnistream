@@ -1,16 +1,39 @@
-def synthesize_answer(query: str, results: list[dict]) -> str:
+from typing import Any
+
+
+def fallback_answer(query: str, results: list[dict[str, Any]]) -> dict[str, Any]:
     if not results:
-        return "No relevant tickets were found for this query."
+        return {
+            "answer": "I could not find enough relevant retrieved context to answer this query.",
+            "short_summary": "No relevant retrieved tickets were found.",
+            "answer_status": "insufficient_context",
+            "confidence": "low",
+            "citations": [],
+        }
 
     top_results = results[:3]
+    citations = []
 
-    summary_lines = [f"Query: {query}", "", "Top relevant findings:"]
+    lines = ["Top relevant findings:"]
     for idx, result in enumerate(top_results, start=1):
         metadata = result["metadata"]
-        summary_lines.append(
-            f"{idx}. [{result['ticket_id']}] "
-            f"{metadata['severity']} {metadata['product']} issue: "
+        lines.append(
+            f"{idx}. Ticket {result['ticket_id']} "
+            f"({metadata['severity']} / {metadata['product']}): "
             f"{result['text']}"
         )
+        citations.append(
+            {
+                "chunk_id": result["chunk_id"],
+                "ticket_id": result["ticket_id"],
+                "reason": "Fallback answer used this retrieved chunk as supporting evidence.",
+            }
+        )
 
-    return "\n".join(summary_lines)
+    return {
+        "answer": "\n".join(lines),
+        "short_summary": f"Fallback summary built from {len(top_results)} retrieved chunks.",
+        "answer_status": "fallback",
+        "confidence": "low",
+        "citations": citations,
+    }

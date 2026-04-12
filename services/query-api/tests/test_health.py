@@ -10,3 +10,6 @@ def test_health_endpoint():
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ok"
+    assert "llm_enabled" in body
+    assert "llm_reason" in body
+    assert "env_files_checked" in body

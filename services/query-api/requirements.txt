@@ -2,5 +2,7 @@ fastapi
 uvicorn[standard]
 numpy
 sentence-transformers
+google-genai
 pytest
 httpx
+python-dotenv
