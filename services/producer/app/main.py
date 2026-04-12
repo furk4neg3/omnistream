@@ -26,7 +26,8 @@ def main() -> None:
 
     print(
         f"Starting producer: mode={settings.output_mode}, "
-        f"tenant={settings.tenant_id}, max_events={settings.max_events}"
+        f"tenant={settings.tenant_id}, max_events={settings.max_events}, "
+        f"output_file={settings.output_file if settings.output_mode == 'file' else 'n/a'}"
     )
 
     for _ in range(settings.max_events):
