@@ -4,16 +4,24 @@ from time import perf_counter
 
 from fastapi import APIRouter, FastAPI
 
-from app.config import Settings
+from app.config import Settings, load_settings
+from app.ingestion import build_chunk_records, transform_raw_to_enriched
 from app.llm import GeminiClient
-from app.models import HealthResponse, QueryRequest, QueryResponse, Timing
+from app.models import (
+    HealthResponse,
+    IngestResponse,
+    QueryRequest,
+    QueryResponse,
+    RawEvent,
+    Timing,
+)
 from app.rag import fallback_answer
 from app.retrieval import QueryEngine
 
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+    return load_settings()
 
 
 @lru_cache
@@ -46,7 +54,7 @@ def get_llm_client() -> GeminiClient | None:
 
 
 settings = get_settings()
-print("Gemini key configured:", bool(settings.gemini_api_key))
+print(f"Gemini configuration status: {settings.llm_ready_reason}")
 
 app = FastAPI(
     title=settings.app_name,
@@ -64,11 +72,37 @@ def health() -> HealthResponse:
         status="ok",
         app_name=settings.app_name,
         app_version=settings.app_version,
-        model_name=engine.manifest["model_name"],
-        record_count=engine.manifest["record_count"],
-        embedding_dim=engine.manifest["embedding_dim"],
+        model_name=engine.manifest.get("model_name") or settings.embedding_model_name,
+        record_count=engine.manifest.get("record_count", 0),
+        embedding_dim=engine.manifest.get("embedding_dim", 0),
+        vector_store_dir=settings.vector_store_dir,
         llm_enabled=llm_client is not None,
         llm_model_name=settings.llm_model_name if llm_client else None,
+        llm_reason=settings.llm_ready_reason,
+        llm_api_key_source=settings.gemini_api_key_source,
+        env_files_checked=list(settings.env_files_checked),
+    )
+
+
+@router.post("/ingest", response_model=IngestResponse)
+def ingest(event: RawEvent) -> IngestResponse:
+    engine = get_query_engine()
+
+    enriched_event = transform_raw_to_enriched(
+        raw_event=event,
+        settings=settings,
+    )
+    chunk_records = build_chunk_records(enriched_event)
+    manifest = engine.ingest_chunk_records(chunk_records)
+
+    return IngestResponse(
+        status="ingested",
+        event_id=enriched_event["event_id"],
+        ticket_id=enriched_event["ticket_id"],
+        tenant_id=enriched_event["tenant_id"],
+        chunks_created=len(chunk_records),
+        vector_record_count=manifest["record_count"],
+        summary=enriched_event["metadata"]["summary"],
     )
 
 

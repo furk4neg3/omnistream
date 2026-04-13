@@ -57,9 +57,38 @@ class QueryResponse(BaseModel):
     used_rag: bool
     answer_status: Literal["grounded", "insufficient_context", "fallback"]
     confidence: Literal["low", "medium", "high"] | None = None
-    citations: list[AnswerCitation] = []
+    citations: list[AnswerCitation] = Field(default_factory=list)
     results: list[SearchResult]
     timing_ms: Timing
+
+
+class RawEventPayload(BaseModel):
+    ticket_id: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    body: str = Field(min_length=1)
+    severity: Literal["low", "medium", "high", "critical"]
+    product: str = Field(min_length=1)
+    customer_tier: Literal["free", "pro", "enterprise"]
+    language: str = "en"
+    tags: list[str] = Field(default_factory=list)
+
+
+class RawEvent(BaseModel):
+    event_id: str = Field(min_length=1)
+    source: Literal["support_ticket"]
+    timestamp: datetime
+    tenant_id: str = Field(min_length=1)
+    payload: RawEventPayload
+
+
+class IngestResponse(BaseModel):
+    status: Literal["ingested"]
+    event_id: str
+    ticket_id: str
+    tenant_id: str
+    chunks_created: int
+    vector_record_count: int
+    summary: str
 
 
 class HealthResponse(BaseModel):
@@ -69,10 +98,9 @@ class HealthResponse(BaseModel):
     model_name: str
     record_count: int
     embedding_dim: int
+    vector_store_dir: str | None = None
     llm_enabled: bool
     llm_model_name: str | None = None
-
-    # Optional debug fields so /health works both with and without them
     llm_reason: str | None = None
     llm_api_key_source: str | None = None
-    env_files_checked: list[str] = []
+    env_files_checked: list[str] = Field(default_factory=list)
