@@ -5,7 +5,15 @@ import numpy as np
 
 class LocalEmbedder:
     def __init__(self, model_name: str) -> None:
-        from sentence_transformers import SentenceTransformer
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError as exc:
+            raise RuntimeError(
+                "Missing dependency: sentence-transformers.\n"
+                "Install processing-agent dependencies with:\n"
+                "pip install -r services/processing-agent/requirements.txt\n"
+                "Or activate the correct virtual environment before running the agent."
+            ) from exc
 
         self.model_name = model_name
         self.model = SentenceTransformer(model_name)
