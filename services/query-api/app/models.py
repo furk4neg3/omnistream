@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Filters(BaseModel):
@@ -27,6 +27,10 @@ class SearchResultMetadata(BaseModel):
     timestamp: datetime
     customer_tier: str
     source: str
+    event_type: str | None = None
+    record_id: str | None = None
+    source_payload_id: str | None = None
+    router_label: str | None = None
 
 
 class SearchResult(BaseModel):
@@ -62,7 +66,7 @@ class QueryResponse(BaseModel):
     timing_ms: Timing
 
 
-class RawEventPayload(BaseModel):
+class SupportTicketPayload(BaseModel):
     ticket_id: str = Field(min_length=1)
     title: str = Field(min_length=1)
     body: str = Field(min_length=1)
@@ -73,12 +77,41 @@ class RawEventPayload(BaseModel):
     tags: list[str] = Field(default_factory=list)
 
 
+class CustomerChatMessagePayload(BaseModel):
+    conversation_id: str = Field(min_length=1)
+    message_id: str = Field(min_length=1)
+    sender: Literal["customer", "agent", "system"]
+    message: str = Field(min_length=1)
+    severity: Literal["low", "medium", "high", "critical"]
+    product: str = Field(min_length=1)
+    customer_tier: Literal["free", "pro", "enterprise"]
+    sentiment: Literal["negative", "neutral", "positive"] = "neutral"
+    language: str = "en"
+    tags: list[str] = Field(default_factory=list)
+
+
+RawEventPayload = SupportTicketPayload
+
+
 class RawEvent(BaseModel):
     event_id: str = Field(min_length=1)
-    source: Literal["support_ticket"]
+    source: Literal["support_ticket", "customer_chat_message"]
     timestamp: datetime
     tenant_id: str = Field(min_length=1)
-    payload: RawEventPayload
+    payload: SupportTicketPayload | CustomerChatMessagePayload
+
+    @model_validator(mode="after")
+    def payload_matches_source(self) -> "RawEvent":
+        if self.source == "support_ticket" and not isinstance(self.payload, SupportTicketPayload):
+            raise ValueError("support_ticket events require a support ticket payload")
+
+        if self.source == "customer_chat_message" and not isinstance(
+            self.payload,
+            CustomerChatMessagePayload,
+        ):
+            raise ValueError("customer_chat_message events require a chat message payload")
+
+        return self
 
 
 class IngestResponse(BaseModel):
@@ -104,3 +137,14 @@ class HealthResponse(BaseModel):
     llm_reason: str | None = None
     llm_api_key_source: str | None = None
     env_files_checked: list[str] = Field(default_factory=list)
+
+
+class MetricsResponse(BaseModel):
+    service: str
+    app_name: str
+    app_version: str
+    uptime_seconds: float
+    started_at: str
+    counters: dict[str, int]
+    timings_ms: dict[str, dict[str, float | int]]
+    vector_store: dict[str, Any]

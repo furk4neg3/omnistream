@@ -92,6 +92,18 @@
         "router_label": {
           "type": "string"
         },
+        "event_type": {
+          "type": "string"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "source_payload_id": {
+          "type": "string"
+        },
+        "route_version": {
+          "type": "string"
+        },
         "summary": {
           "type": "string"
         },

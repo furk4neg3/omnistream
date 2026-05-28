@@ -2,7 +2,8 @@ from app.checkpoint import load_checkpoint, save_checkpoint
 from app.config import Settings
 from app.embedder import LocalEmbedder
 from app.reader import read_new_jsonl_records
-from app.transformer import build_chunk_records, transform_raw_to_enriched
+from app.router import route_raw_event
+from app.transformer import build_chunk_records, enrich_routed_event
 from app.validator import validate_enriched_event, validate_raw_event
 from app.vector_store import upsert_local_vector_store
 from app.writer import append_jsonl
@@ -42,9 +43,11 @@ class ProcessingAgent:
 
         for raw_event in raw_events:
             validate_raw_event(raw_event)
+            route = route_raw_event(raw_event)
 
-            enriched_event = transform_raw_to_enriched(
+            enriched_event = enrich_routed_event(
                 raw_event=raw_event,
+                route=route,
                 chunk_size_words=self.settings.chunk_size_words,
                 chunk_overlap_words=self.settings.chunk_overlap_words,
                 schema_version=self.settings.schema_version,

@@ -24,6 +24,10 @@ class Settings:
         "CHECKPOINT_FILE",
         str(SERVICE_ROOT / "state" / "checkpoint.json"),
     )
+    metrics_file: str = os.getenv(
+        "METRICS_FILE",
+        str(SERVICE_ROOT / "state" / "metrics.json"),
+    )
     vector_store_dir: str = os.getenv(
         "VECTOR_STORE_DIR",
         str(REPO_ROOT / "services" / "indexer" / "local_vector_store"),

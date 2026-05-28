@@ -61,25 +61,126 @@ OmniStream is currently a **Work in Progress**. The architecture is defined, and
 
 ---
 
-## Getting Started (Draft)
+## Local Docker Compose
 
-*(Instructions will be updated as the CI/CD pipeline and IaC configurations are finalized).*
+The local stack is intentionally file-backed so it maps cleanly to managed services later:
+
+* `producer` appends raw support events to a JSONL file, analogous to a future Kinesis/MSK producer.
+* `processing-agent` polls that append-only file, checkpoints progress, enriches/chunks events, embeds them, and updates the local vector store incrementally.
+* `query-api` serves `/health`, `/search`, `/ask`, and `/ingest` over HTTP using the same vector store mount.
 
 ### Prerequisites
-* AWS CLI configured with appropriate IAM permissions
-* Terraform `>= 1.5.0`
-* Docker & Kubernetes (kubectl, helm)
-* Python `>= 3.10`
 
-### Local Development Setup
+* Docker with Compose v2
+* Optional: `jq` for prettier verification output
+* Optional: `GEMINI_API_KEY` or `GOOGLE_API_KEY` when running grounded LLM answers
+
+The first run may take a few minutes because the images install Python dependencies. Compose uses a lightweight deterministic local embedding backend by default so the stack can run without model downloads.
+
+### Start the Core Stack
+
 ```bash
-# Clone the repository
-git clone [https://github.com/yourusername/OmniStream.git](https://github.com/yourusername/OmniStream.git)
-cd OmniStream
+docker compose up --build
+```
 
-# Set up virtual environment
-python -m venv venv
-source venv/bin/activate
+This starts:
 
-# Install dependencies
-pip install -r requirements.txt
+* `query-api` on `http://localhost:8000`
+* `processing-agent`, polling `.local/omnistream/events/events.jsonl`
+
+Shared local state is mounted at `.local/omnistream`:
+
+* `events/events.jsonl` for raw events
+* `enriched/enriched_events.jsonl` for processed event output
+* `state/processing-checkpoint.json` for the consumer checkpoint
+* `state/processing-agent-metrics.json` and `state/producer-metrics.json` for local service status snapshots
+* `vector_store/` for embeddings, records, and manifest files
+* `model-cache/` for downloaded embedding model files when optional model dependencies are enabled
+
+### Generate Events
+
+The producer is a controlled one-shot service under the `producer` profile:
+
+```bash
+docker compose --profile producer run --rm producer
+```
+
+Override event volume and rate as needed:
+
+```bash
+MAX_EVENTS=25 EVENTS_PER_SECOND=5 docker compose --profile producer run --rm producer
+```
+
+The processing-agent should pick up those events automatically and update the vector store without restarting the query-api.
+
+By default the producer emits a mix of `support_ticket` and `customer_chat_message` raw events. Limit the mix with `EVENT_TYPES` when you want deterministic demos:
+
+```bash
+EVENT_TYPES=customer_chat_message MAX_EVENTS=3 docker compose --profile producer run --rm producer
+```
+
+The processing-agent routes each raw event before enrichment:
+
+* `support_ticket` records keep their ticket ID as the canonical support record ID.
+* `customer_chat_message` records use `conversation_id` as the canonical support record ID and `message_id` as the source payload ID.
+* Enriched chunks include route metadata such as `event_type`, `record_id`, `source_payload_id`, and `router_label`.
+
+### Embedding Backend
+
+Compose defaults to `hashing-local-v1`, a deterministic local embedding backend that keeps container builds small and still records the embedding model name in the vector store manifest. The query-api and processing-agent will fail loudly if they point at a vector store built with a different model name.
+
+To opt into `sentence-transformers` inside Docker, rebuild with the optional dependency and set the Compose-specific model variable:
+
+```bash
+INSTALL_SENTENCE_TRANSFORMERS=true OMNISTREAM_EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2 docker compose up --build
+```
+
+When switching embedding models, reset `.local/omnistream/vector_store` and `.local/omnistream/state` so the checkpoint and stored embeddings stay consistent.
+
+### Verify Health And Search
+
+```bash
+curl -s http://localhost:8000/health | jq
+```
+
+```bash
+curl -s http://localhost:8000/metrics | jq
+```
+
+```bash
+curl -s http://localhost:8000/search \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"What issue is affecting mobile checkout?","tenant_id":"acme","top_k":5}' | jq
+```
+
+```bash
+curl -s http://localhost:8000/ask \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"What are the most important auth issues?","tenant_id":"acme","top_k":5,"use_rag":false}' | jq
+```
+
+Use Compose status and logs for operational visibility:
+
+```bash
+docker compose ps
+docker compose logs -f processing-agent
+docker compose logs -f query-api
+cat .local/omnistream/state/processing-agent-metrics.json | jq
+cat .local/omnistream/state/producer-metrics.json | jq
+```
+
+### Optional LLM RAG
+
+Without a shell or `.env` override, Compose sets `ENABLE_LLM_RAG=false`, so `/ask` returns the safe local fallback. To enable grounded LLM answers:
+
+```bash
+ENABLE_LLM_RAG=true GEMINI_API_KEY=your_key docker compose up --build
+```
+
+### Stop Or Reset
+
+```bash
+docker compose down
+```
+
+Compose preserves local data in `.local/omnistream`. Remove that directory when you want a fresh event log, checkpoint, vector store, and model cache.

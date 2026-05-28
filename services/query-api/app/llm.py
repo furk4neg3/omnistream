@@ -1,6 +1,5 @@
 from typing import Any, Literal
 
-from google import genai
 from pydantic import BaseModel, Field, ValidationError
 
 
@@ -32,6 +31,8 @@ def build_context(results: list[dict[str, Any]], max_chunks: int, max_chars: int
             f"[SOURCE {idx}]\n"
             f"ticket_id={result['ticket_id']}\n"
             f"chunk_id={result['chunk_id']}\n"
+            f"event_type={metadata.get('event_type') or metadata.get('source')}\n"
+            f"source_payload_id={metadata.get('source_payload_id')}\n"
             f"severity={metadata['severity']}\n"
             f"product={metadata['product']}\n"
             f"customer_tier={metadata['customer_tier']}\n"
@@ -87,6 +88,14 @@ class GeminiClient:
         temperature: float,
         max_output_tokens: int,
     ) -> None:
+        try:
+            from google import genai
+        except ImportError as exc:
+            raise RuntimeError(
+                "Gemini RAG requires google-genai. Install query-api dependencies with "
+                "pip install -r services/query-api/requirements.txt or set ENABLE_LLM_RAG=false."
+            ) from exc
+
         self.client = genai.Client(api_key=api_key)
         self.model_name = model_name
         self.max_context_chunks = max_context_chunks
@@ -155,7 +164,7 @@ Rules:
         if not context:
             return {
                 "answer": "I could not find enough relevant retrieved context to answer this query.",
-                "short_summary": "No relevant retrieved tickets were found.",
+                "short_summary": "No relevant retrieved support records were found.",
                 "answer_status": "insufficient_context",
                 "confidence": "low",
                 "citations": [],

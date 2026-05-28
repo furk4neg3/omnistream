@@ -19,7 +19,20 @@ class Settings:
     tenant_id: str = os.getenv("TENANT_ID", "acme")
     events_per_second: float = float(os.getenv("EVENTS_PER_SECOND", "1"))
     max_events: int = int(os.getenv("MAX_EVENTS", "10"))
+    event_types: str = os.getenv("EVENT_TYPES", "support_ticket,customer_chat_message")
     output_file: str = os.getenv(
         "OUTPUT_FILE",
         str(SERVICE_ROOT / "events.jsonl"),
     )
+    metrics_file: str = os.getenv(
+        "METRICS_FILE",
+        str(SERVICE_ROOT / "state" / "metrics.json"),
+    )
+
+    @property
+    def enabled_event_types(self) -> list[str]:
+        return [
+            event_type.strip()
+            for event_type in self.event_types.split(",")
+            if event_type.strip()
+        ]

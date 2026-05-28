@@ -16,8 +16,8 @@
     },
     "source": {
       "type": "string",
-      "enum": ["support_ticket"],
-      "description": "Origin of the event"
+      "enum": ["support_ticket", "customer_chat_message"],
+      "description": "Origin and routing discriminator for the event"
     },
     "timestamp": {
       "type": "string",
@@ -29,6 +29,47 @@
       "description": "Tenant or organization identifier"
     },
     "payload": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "const": "support_ticket"
+          }
+        },
+        "required": ["source"]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/support_ticket_payload"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "const": "customer_chat_message"
+          }
+        },
+        "required": ["source"]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/customer_chat_message_payload"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "support_ticket_payload": {
       "type": "object",
       "required": [
         "ticket_id",
@@ -67,7 +108,63 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    },
+    "customer_chat_message_payload": {
+      "type": "object",
+      "required": [
+        "conversation_id",
+        "message_id",
+        "sender",
+        "message",
+        "severity",
+        "product",
+        "customer_tier"
+      ],
+      "properties": {
+        "conversation_id": {
+          "type": "string"
+        },
+        "message_id": {
+          "type": "string"
+        },
+        "sender": {
+          "type": "string",
+          "enum": ["customer", "agent", "system"]
+        },
+        "message": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        },
+        "product": {
+          "type": "string"
+        },
+        "customer_tier": {
+          "type": "string",
+          "enum": ["free", "pro", "enterprise"]
+        },
+        "sentiment": {
+          "type": "string",
+          "enum": ["negative", "neutral", "positive"],
+          "default": "neutral"
+        },
+        "language": {
+          "type": "string",
+          "default": "en"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
         }
       },
       "additionalProperties": false

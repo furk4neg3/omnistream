@@ -5,7 +5,7 @@ import numpy as np
 
 from app.embedder import LocalEmbedder
 from app.models import Filters
-from app.store import get_store_version, load_local_vector_store
+from app.store import get_store_version, load_local_vector_store, upsert_local_vector_store
 
 
 def parse_timestamp(ts: str) -> datetime:
@@ -107,3 +107,15 @@ class QueryEngine:
 
         candidates.sort(key=lambda x: x["score"], reverse=True)
         return candidates[:top_k]
+
+    def ingest_chunk_records(self, chunk_records: list[dict[str, Any]]) -> dict[str, Any]:
+        chunk_texts = [record["text"] for record in chunk_records]
+        embeddings = self.embedder.encode(chunk_texts)
+        manifest = upsert_local_vector_store(
+            vector_store_dir=self.vector_store_dir,
+            embeddings=embeddings,
+            records=chunk_records,
+            model_name=self.embedding_model_name,
+        )
+        self.reload()
+        return manifest

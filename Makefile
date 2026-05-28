@@ -1,10 +1,22 @@
-.PHONY: format test lint
+.PHONY: format test lint compose-up compose-producer compose-down compose-logs
 
 format:
-\t@echo "format step coming soon"
+	@echo "format step coming soon"
 
 lint:
-\t@echo "lint step coming soon"
+	@echo "lint step coming soon"
 
 test:
-\t@echo "test step coming soon"
+	@echo "test step coming soon"
+
+compose-up:
+	docker compose up --build
+
+compose-producer:
+	docker compose --profile producer run --rm producer
+
+compose-down:
+	docker compose down
+
+compose-logs:
+	docker compose logs -f

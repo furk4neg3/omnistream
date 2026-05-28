@@ -1,0 +1,92 @@
+services:
+  query-api:
+    build:
+      context: .
+      dockerfile: services/query-api/Dockerfile
+      args:
+        INSTALL_SENTENCE_TRANSFORMERS: ${INSTALL_SENTENCE_TRANSFORMERS:-false}
+    environment:
+      APP_NAME: ${APP_NAME:-OmniStream Query API}
+      APP_VERSION: ${APP_VERSION:-0.1.0}
+      VECTOR_STORE_DIR: /workspace/local-data/vector_store
+      EMBEDDING_MODEL_NAME: ${OMNISTREAM_EMBEDDING_MODEL_NAME:-hashing-local-v1}
+      ENABLE_LLM_RAG: ${ENABLE_LLM_RAG:-false}
+      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-gemini-3-flash-preview}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      MAX_CONTEXT_CHUNKS: ${MAX_CONTEXT_CHUNKS:-5}
+      MAX_CONTEXT_CHARS: ${MAX_CONTEXT_CHARS:-6000}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.2}
+      LLM_MAX_OUTPUT_TOKENS: ${LLM_MAX_OUTPUT_TOKENS:-400}
+      CHUNK_SIZE_WORDS: ${CHUNK_SIZE_WORDS:-80}
+      CHUNK_OVERLAP_WORDS: ${CHUNK_OVERLAP_WORDS:-20}
+      SCHEMA_VERSION: ${SCHEMA_VERSION:-v1}
+      PROCESSING_VERSION: ${PROCESSING_VERSION:-v1}
+      HF_HOME: /workspace/local-data/model-cache/huggingface
+      SENTENCE_TRANSFORMERS_HOME: /workspace/local-data/model-cache/sentence-transformers
+      TOKENIZERS_PARALLELISM: "false"
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "${QUERY_API_PORT:-8000}:8000"
+    volumes:
+      - ./.local/omnistream:/workspace/local-data
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=10).read()"
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 120s
+    restart: unless-stopped
+
+  processing-agent:
+    build:
+      context: .
+      dockerfile: services/processing-agent/Dockerfile
+      args:
+        INSTALL_SENTENCE_TRANSFORMERS: ${INSTALL_SENTENCE_TRANSFORMERS:-false}
+    environment:
+      INPUT_FILE: /workspace/local-data/events/events.jsonl
+      OUTPUT_FILE: /workspace/local-data/enriched/enriched_events.jsonl
+      CHECKPOINT_FILE: /workspace/local-data/state/processing-checkpoint.json
+      METRICS_FILE: /workspace/local-data/state/processing-agent-metrics.json
+      VECTOR_STORE_DIR: /workspace/local-data/vector_store
+      POLL_INTERVAL_SECONDS: ${POLL_INTERVAL_SECONDS:-1.0}
+      LOOP_FOREVER: ${LOOP_FOREVER:-true}
+      BATCH_SIZE: ${BATCH_SIZE:-32}
+      CHUNK_SIZE_WORDS: ${CHUNK_SIZE_WORDS:-80}
+      CHUNK_OVERLAP_WORDS: ${CHUNK_OVERLAP_WORDS:-20}
+      SCHEMA_VERSION: ${SCHEMA_VERSION:-v1}
+      PROCESSING_VERSION: ${PROCESSING_VERSION:-v1}
+      EMBEDDING_MODEL_NAME: ${OMNISTREAM_EMBEDDING_MODEL_NAME:-hashing-local-v1}
+      HF_HOME: /workspace/local-data/model-cache/huggingface
+      SENTENCE_TRANSFORMERS_HOME: /workspace/local-data/model-cache/sentence-transformers
+      TOKENIZERS_PARALLELISM: "false"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./.local/omnistream:/workspace/local-data
+    restart: unless-stopped
+
+  producer:
+    profiles:
+      - producer
+    build:
+      context: .
+      dockerfile: services/producer/Dockerfile
+    environment:
+      OUTPUT_MODE: file
+      OUTPUT_FILE: /workspace/local-data/events/events.jsonl
+      METRICS_FILE: /workspace/local-data/state/producer-metrics.json
+      TENANT_ID: ${TENANT_ID:-acme}
+      EVENT_TYPES: ${EVENT_TYPES:-support_ticket,customer_chat_message}
+      EVENTS_PER_SECOND: ${EVENTS_PER_SECOND:-1}
+      MAX_EVENTS: ${MAX_EVENTS:-10}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      KINESIS_STREAM_NAME: ${KINESIS_STREAM_NAME:-omnistream-raw-events}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./.local/omnistream:/workspace/local-data
+    restart: "no"

@@ -7,7 +7,9 @@
     "tenant_id",
     "results",
     "timing_ms",
-    "used_rag"
+    "used_rag",
+    "answer_status",
+    "citations"
   ],
   "properties": {
     "query": {
@@ -17,7 +19,38 @@
       "type": "string"
     },
     "answer": {
-      "type": "string"
+      "type": ["string", "null"]
+    },
+    "short_summary": {
+      "type": ["string", "null"]
+    },
+    "answer_status": {
+      "type": "string",
+      "enum": ["grounded", "insufficient_context", "fallback"]
+    },
+    "confidence": {
+      "type": ["string", "null"],
+      "enum": ["low", "medium", "high", null]
+    },
+    "citations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["chunk_id", "ticket_id", "reason"],
+        "properties": {
+          "chunk_id": {
+            "type": "string"
+          },
+          "ticket_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "default": []
     },
     "used_rag": {
       "type": "boolean"
@@ -62,6 +95,24 @@
               },
               "customer_tier": {
                 "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "tenant_id": {
+                "type": "string"
+              },
+              "event_type": {
+                "type": ["string", "null"]
+              },
+              "record_id": {
+                "type": ["string", "null"]
+              },
+              "source_payload_id": {
+                "type": ["string", "null"]
+              },
+              "router_label": {
+                "type": ["string", "null"]
               }
             },
             "additionalProperties": false
@@ -78,7 +129,7 @@
           "type": "number"
         },
         "generation": {
-          "type": "number"
+          "type": ["number", "null"]
         },
         "total": {
           "type": "number"

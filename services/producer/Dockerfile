@@ -1,13 +1,13 @@
 FROM python:3.11-slim
 
-WORKDIR /app
+WORKDIR /workspace/services/producer
 
-COPY requirements.txt .
+COPY services/producer/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app ./app
-COPY ../../schemas /schemas
+COPY services/producer/app ./app
+COPY schemas /workspace/schemas
 
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/workspace/services/producer
 
 CMD ["python", "-m", "app.main"]
