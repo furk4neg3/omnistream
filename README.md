@@ -59,6 +59,10 @@ OmniStream is currently a **Work in Progress**. The architecture is defined, and
 - [ ] Developing the Router and Processing Agent logic.
 - [ ] Implementing the MLflow tracking server and data drift baseline metrics.
 
+### AWS Migration Readiness
+
+The local prototype is ready enough to begin AWS-readiness work, but no AWS deployment is implemented yet. See [docs/aws-readiness.md](docs/aws-readiness.md) for the first bounded migration-readiness artifact mapping the current Compose services, local state, config, CI, and API surfaces to future AWS resources and gaps.
+
 ---
 
 ## Local Docker Compose
