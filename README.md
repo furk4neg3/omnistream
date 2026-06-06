@@ -211,6 +211,8 @@ cat .local/omnistream/state/processing-agent-metrics.json | jq
 cat .local/omnistream/state/producer-metrics.json | jq
 ```
 
+`docker compose ps` includes the processing-agent container health. The worker healthcheck reads `state/processing-agent-metrics.json`; missing, invalid, stale, or non-running snapshots mark the container unhealthy. The freshness threshold defaults to `PROCESSING_AGENT_HEALTHCHECK_MAX_AGE_SECONDS=120`.
+
 ### Optional LLM RAG
 
 LLM-backed RAG is opt-in. Without a shell or `.env` override, `ENABLE_LLM_RAG=false`, so `/ask` returns the safe local fallback. To enable grounded LLM answers, set both the feature flag and a real provider key in your shell or untracked `.env`:

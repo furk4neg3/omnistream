@@ -58,6 +58,7 @@ services:
       METRICS_FILE: /workspace/local-data/state/processing-agent-metrics.json
       VECTOR_STORE_DIR: /workspace/local-data/vector_store
       POLL_INTERVAL_SECONDS: ${POLL_INTERVAL_SECONDS:-1.0}
+      PROCESSING_AGENT_HEALTHCHECK_MAX_AGE_SECONDS: ${PROCESSING_AGENT_HEALTHCHECK_MAX_AGE_SECONDS:-120}
       LOOP_FOREVER: ${LOOP_FOREVER:-true}
       BATCH_SIZE: ${BATCH_SIZE:-32}
       CHUNK_SIZE_WORDS: ${CHUNK_SIZE_WORDS:-80}
@@ -71,6 +72,16 @@ services:
       PYTHONUNBUFFERED: "1"
     volumes:
       - ./.local/omnistream:/workspace/local-data
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -m
+        - app.healthcheck
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
     restart: unless-stopped
 
   producer:
