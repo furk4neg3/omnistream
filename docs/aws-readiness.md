@@ -8,6 +8,8 @@ This document is not an AWS deployment plan that has already been implemented. I
 
 [ADR 0001](adr/0001-initial-aws-runtime-target.md) records ECS-first as the initial AWS runtime target. This is a target decision only; no ECS deployment or task definitions exist in this repository yet.
 
+The first ECS runtime boundary is captured in [docs/ecs-deployment-design.md](ecs-deployment-design.md). That document is also a design/readiness artifact only, not an implemented AWS deployment.
+
 ## Current local baseline
 
 The current repo implements a three-service local stack with shared file-backed state under the Compose-mounted `.local/omnistream` directory:
@@ -86,13 +88,13 @@ Promote structured logs, metrics, deployment status, and release gates into AWS-
 * CI test execution, Compose validation, and Docker image build validation.
 * Documented container image naming/tagging contract for `query-api`, `processing-agent`, and `producer`.
 * Manual ECR image publishing workflow for the three active service images, using GitHub Actions OIDC and immutable app-version plus git-SHA tags.
+* Initial ECS runtime boundary design for `query-api` and `processing-agent`, with `producer` deferred from the first always-on ECS runtime.
 
 ### Missing before first AWS deployment
 
 * Pre-existing ECR repositories and a GitHub Actions OIDC role in the target AWS account, if they have not already been configured outside this repository.
 * Additional runtime hardening such as explicit resource limits and production image tagging.
 * AWS account, region, environment naming, networking, IAM, config, and secrets boundaries.
-* Initial ECS task/service design for the published images, following [ADR 0001](adr/0001-initial-aws-runtime-target.md).
 * ECS task definitions, EKS manifests, or another runtime deployment implementation for the published images.
 * Cloud-safe replacement for local file paths used by event input, enriched output, checkpoints, status files, and vector store storage.
 * Stream checkpoint and retry semantics for Kinesis or MSK.
@@ -137,4 +139,4 @@ Promote structured logs, metrics, deployment status, and release gates into AWS-
 
 ## Suggested next AWS-readiness step
 
-Define the initial ECS task and service design for `query-api` and `processing-agent`, including container images, environment variable sources, IAM role boundaries, health checks, logs, resource sizing, and ALB exposure for `query-api`, without creating live AWS resources.
+Create an infrastructure skeleton for the documented ECS boundary, including networking, IAM role names and permissions, SSM parameter names, Secrets Manager secret names, log groups, and placeholders for ECS services, without deploying the services or changing service source code.
