@@ -73,9 +73,19 @@ The local stack is intentionally file-backed so it maps cleanly to managed servi
 
 * Docker with Compose v2
 * Optional: `jq` for prettier verification output
-* Optional: `GEMINI_API_KEY` or `GOOGLE_API_KEY` when running grounded LLM answers
+* Optional: `GEMINI_API_KEY` or `GOOGLE_API_KEY` when intentionally enabling grounded LLM answers
 
 The first run may take a few minutes because the images install Python dependencies. Compose uses a lightweight deterministic local embedding backend by default so the stack can run without model downloads.
+
+### Local Configuration
+
+Create a local `.env` from the committed template before adding overrides:
+
+```bash
+cp .env.example .env
+```
+
+`.env` is ignored and is only for local secrets and machine-specific settings. Keep real API keys and cloud credentials out of git; `.env.example` must contain placeholders only. See `docs/configuration.md` for the local variables and their future AWS configuration or secrets-store mapping.
 
 ### Automated Tests
 
@@ -195,10 +205,10 @@ cat .local/omnistream/state/producer-metrics.json | jq
 
 ### Optional LLM RAG
 
-Without a shell or `.env` override, Compose sets `ENABLE_LLM_RAG=false`, so `/ask` returns the safe local fallback. To enable grounded LLM answers:
+LLM-backed RAG is opt-in. Without a shell or `.env` override, `ENABLE_LLM_RAG=false`, so `/ask` returns the safe local fallback. To enable grounded LLM answers, set both the feature flag and a real provider key in your shell or untracked `.env`:
 
 ```bash
-ENABLE_LLM_RAG=true GEMINI_API_KEY=your_key docker compose up --build
+ENABLE_LLM_RAG=true docker compose up --build
 ```
 
 ### Stop Or Reset

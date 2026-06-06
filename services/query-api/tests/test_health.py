@@ -11,6 +11,7 @@ os.environ.setdefault("EMBEDDING_MODEL_NAME", "hashing-local-v1")
 os.environ.setdefault("VECTOR_STORE_DIR", tempfile.mkdtemp(prefix="omnistream-query-api-test-"))
 
 from app import main as app_main
+from app import config as app_config
 
 
 app = app_main.app
@@ -70,6 +71,15 @@ def test_health_endpoint():
     assert "llm_enabled" in body
     assert "llm_reason" in body
     assert "env_files_checked" in body
+
+
+def test_llm_rag_defaults_disabled_without_env(monkeypatch):
+    monkeypatch.delenv("ENABLE_LLM_RAG", raising=False)
+    monkeypatch.setattr(app_config, "CANDIDATE_ENV_FILES", ())
+
+    settings = app_config.load_settings()
+
+    assert settings.enable_llm_rag is False
 
 
 def test_metrics_endpoint():

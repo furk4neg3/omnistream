@@ -138,7 +138,7 @@ def load_settings() -> Settings:
         "30",
     )
 
-    enable_llm_rag_raw, _ = resolve_env("ENABLE_LLM_RAG", "true")
+    enable_llm_rag_raw, _ = resolve_env("ENABLE_LLM_RAG", "false")
     llm_model_name, _ = resolve_env("LLM_MODEL_NAME", "gemini-3-flash-preview")
     gemini_api_key, gemini_api_key_source = resolve_gemini_api_key()
 
@@ -163,7 +163,7 @@ def load_settings() -> Settings:
         producer_metrics_file=producer_metrics_file
         or str(REPO_ROOT / ".local" / "omnistream" / "state" / "producer-metrics.json"),
         dependency_status_max_age_seconds=int(dependency_status_max_age_seconds_raw or "30"),
-        enable_llm_rag=env_bool(enable_llm_rag_raw, True),
+        enable_llm_rag=env_bool(enable_llm_rag_raw, False),
         llm_model_name=llm_model_name or "gemini-3-flash-preview",
         gemini_api_key=gemini_api_key,
         gemini_api_key_source=gemini_api_key_source,
