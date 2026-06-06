@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  python-tests:
+    name: Python tests
+    runs-on: ubuntu-latest
+    env:
+      ENABLE_LLM_RAG: "false"
+      EMBEDDING_MODEL_NAME: hashing-local-v1
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            pytest \
+            httpx \
+            fastapi \
+            numpy \
+            jsonschema \
+            python-dotenv
+
+      - name: Run existing test suite
+        run: bash scripts/run_tests.sh
+
+  docker-builds:
+    name: Docker build validation
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_BUILDKIT: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate Compose configuration
+        run: docker compose config
+
+      - name: Build query-api image
+        run: |
+          docker build \
+            --build-arg INSTALL_SENTENCE_TRANSFORMERS=false \
+            -f services/query-api/Dockerfile \
+            -t omnistream-query-api:ci .
+
+      - name: Build processing-agent image
+        run: |
+          docker build \
+            --build-arg INSTALL_SENTENCE_TRANSFORMERS=false \
+            -f services/processing-agent/Dockerfile \
+            -t omnistream-processing-agent:ci .
+
+      - name: Build producer image
+        run: |
+          docker build \
+            -f services/producer/Dockerfile \
+            -t omnistream-producer:ci .
