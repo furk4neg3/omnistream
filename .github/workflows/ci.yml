@@ -46,6 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DOCKER_BUILDKIT: "1"
+      OMNISTREAM_IMAGE_NAMESPACE: omnistream
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -53,22 +54,26 @@ jobs:
       - name: Validate Compose configuration
         run: docker compose config
 
+      - name: Resolve contract image tags
+        id: image-tags
+        run: python3 scripts/resolve_image_tags.py >> "$GITHUB_OUTPUT"
+
       - name: Build query-api image
         run: |
           docker build \
             --build-arg INSTALL_SENTENCE_TRANSFORMERS=false \
             -f services/query-api/Dockerfile \
-            -t omnistream-query-api:ci .
+            -t "${{ steps.image-tags.outputs.query_api_image }}" .
 
       - name: Build processing-agent image
         run: |
           docker build \
             --build-arg INSTALL_SENTENCE_TRANSFORMERS=false \
             -f services/processing-agent/Dockerfile \
-            -t omnistream-processing-agent:ci .
+            -t "${{ steps.image-tags.outputs.processing_agent_image }}" .
 
       - name: Build producer image
         run: |
           docker build \
             -f services/producer/Dockerfile \
-            -t omnistream-producer:ci .
+            -t "${{ steps.image-tags.outputs.producer_image }}" .

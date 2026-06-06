@@ -79,10 +79,11 @@ Promote structured logs, metrics, deployment status, and release gates into AWS-
 * Local dependency visibility through producer and processing-agent status files.
 * Embedding model-name compatibility checks between vector store contents and service configuration.
 * CI test execution, Compose validation, and Docker image build validation.
+* Documented container image naming/tagging contract for `query-api`, `processing-agent`, and `producer`, with CI builds using immutable app-version and git-SHA tags but no image publishing.
 
 ### Missing before first AWS deployment
 
-* Published container image registry flow, likely ECR.
+* Published container image registry flow, likely ECR. The image naming/tagging contract exists, but no registry push is implemented yet.
 * Additional runtime hardening such as explicit resource limits and production image tagging.
 * AWS account, region, environment naming, networking, IAM, config, and secrets boundaries.
 * Decision on ECS versus EKS for the first service deployment.
@@ -128,6 +129,4 @@ Promote structured logs, metrics, deployment status, and release gates into AWS-
 
 ## Suggested next AWS-readiness step
 
-Define the versioned image tagging and publishing contract for CI without introducing live AWS dependencies yet.
-
-This should be the next bounded step because the service images now build with a non-root runtime posture, and CI already validates the three Docker builds. Keep this as a contract and documentation step until the project is ready to add ECR publishing or deployment resources.
+Define runtime container hardening expectations for a future orchestrator, such as resource requests/limits, lifecycle signals for `processing-agent`, and health-check boundaries, without adding AWS deployment resources yet.
