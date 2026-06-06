@@ -1,6 +1,8 @@
 import json
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from app.healthcheck import check_metrics_snapshot
 
 
@@ -63,13 +65,14 @@ def test_healthcheck_reports_non_object_json(tmp_path):
     assert "JSON object" in message
 
 
-def test_healthcheck_reports_non_running_status(tmp_path):
+@pytest.mark.parametrize("status", ["stopping", "stopped", "error"])
+def test_healthcheck_reports_non_running_status(tmp_path, status):
     metrics_file = tmp_path / "processing-agent-metrics.json"
     write_metrics(
         metrics_file,
         {
             "service": "processing-agent",
-            "status": "error",
+            "status": status,
             "updated_at": iso_seconds_ago(1),
         },
     )
@@ -78,7 +81,7 @@ def test_healthcheck_reports_non_running_status(tmp_path):
 
     assert healthy is False
     assert "not running" in message
-    assert "error" in message
+    assert status in message
 
 
 def test_healthcheck_reports_missing_updated_at(tmp_path):

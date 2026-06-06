@@ -31,4 +31,6 @@ COPY --chown=omnistream:omnistream schemas /workspace/schemas
 
 USER omnistream
 
+STOPSIGNAL SIGTERM
+
 CMD ["python", "-m", "app.main"]

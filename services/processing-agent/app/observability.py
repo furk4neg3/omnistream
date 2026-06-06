@@ -28,6 +28,7 @@ class AgentMetrics:
     def __init__(self, settings: Any) -> None:
         self.started_at = utc_now()
         self._started = perf_counter()
+        self.status = "running"
         self.counters: defaultdict[str, int] = defaultdict(int)
         self.route_metrics: dict[str, defaultdict[str, int]] = {
             "events_by_type_total": defaultdict(int),
@@ -89,10 +90,13 @@ class AgentMetrics:
             "observed_at": utc_now(),
         }
 
+    def set_status(self, status: str) -> None:
+        self.status = status
+
     def snapshot(self) -> dict[str, Any]:
         return {
             "service": SERVICE_NAME,
-            "status": "error" if self.last_error else "running",
+            "status": "error" if self.last_error else self.status,
             "started_at": self.started_at,
             "updated_at": utc_now(),
             "uptime_seconds": round(perf_counter() - self._started, 2),

@@ -82,6 +82,7 @@ services:
       timeout: 10s
       retries: 5
       start_period: 120s
+    stop_grace_period: 30s
     restart: unless-stopped
 
   producer:
