@@ -1,0 +1,133 @@
+name: Publish Images
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish-ecr-images:
+    name: Publish service images to ECR
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_BUILDKIT: "1"
+      OMNISTREAM_IMAGE_NAMESPACE: ${{ vars.OMNISTREAM_IMAGE_NAMESPACE || 'omnistream' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate AWS repository variables
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
+        run: |
+          missing=0
+          for variable_name in AWS_REGION AWS_ROLE_TO_ASSUME; do
+            if [ -z "${!variable_name}" ]; then
+              echo "::error title=Missing repository variable::Configure ${variable_name} before running this workflow."
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
+          role-session-name: omnistream-publish-images
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Resolve immutable image tags
+        id: image-tags
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          python3 scripts/resolve_image_tags.py \
+            --registry "$ECR_REGISTRY" \
+            --namespace "$OMNISTREAM_IMAGE_NAMESPACE" >> "$GITHUB_OUTPUT"
+
+      - name: Verify ECR repositories exist
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+        run: |
+          missing=0
+          for repository in \
+            "$OMNISTREAM_IMAGE_NAMESPACE/query-api" \
+            "$OMNISTREAM_IMAGE_NAMESPACE/processing-agent" \
+            "$OMNISTREAM_IMAGE_NAMESPACE/producer"; do
+            if ! output="$(aws ecr describe-repositories --repository-names "$repository" 2>&1)"; then
+              echo "::error title=ECR repository unavailable::Expected pre-existing ECR repository '$repository' in region '$AWS_REGION'. This workflow does not create repositories. AWS CLI output: $output"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Verify immutable tags are unpublished
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          IMAGE_TAG: ${{ steps.image-tags.outputs.image_tag }}
+        run: |
+          already_published=0
+          for repository in \
+            "$OMNISTREAM_IMAGE_NAMESPACE/query-api" \
+            "$OMNISTREAM_IMAGE_NAMESPACE/processing-agent" \
+            "$OMNISTREAM_IMAGE_NAMESPACE/producer"; do
+            if output="$(aws ecr describe-images --repository-name "$repository" --image-ids imageTag="$IMAGE_TAG" 2>&1)"; then
+              echo "::error title=Immutable image tag already exists::Image tag '$IMAGE_TAG' already exists in ECR repository '$repository'. This workflow will not reassign immutable tags."
+              already_published=1
+            else
+              case "$output" in
+                *ImageNotFoundException*)
+                  ;;
+                *)
+                  echo "::error title=Unable to verify image tag::Could not verify image tag '$IMAGE_TAG' in ECR repository '$repository'. AWS CLI output: $output"
+                  already_published=1
+                  ;;
+              esac
+            fi
+          done
+
+          if [ "$already_published" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Build query-api image
+        run: |
+          docker build \
+            --build-arg INSTALL_SENTENCE_TRANSFORMERS=false \
+            -f services/query-api/Dockerfile \
+            -t "${{ steps.image-tags.outputs.query_api_image }}" .
+
+      - name: Build processing-agent image
+        run: |
+          docker build \
+            --build-arg INSTALL_SENTENCE_TRANSFORMERS=false \
+            -f services/processing-agent/Dockerfile \
+            -t "${{ steps.image-tags.outputs.processing_agent_image }}" .
+
+      - name: Build producer image
+        run: |
+          docker build \
+            -f services/producer/Dockerfile \
+            -t "${{ steps.image-tags.outputs.producer_image }}" .
+
+      - name: Push query-api image
+        run: docker push "${{ steps.image-tags.outputs.query_api_image }}"
+
+      - name: Push processing-agent image
+        run: docker push "${{ steps.image-tags.outputs.processing_agent_image }}"
+
+      - name: Push producer image
+        run: docker push "${{ steps.image-tags.outputs.producer_image }}"

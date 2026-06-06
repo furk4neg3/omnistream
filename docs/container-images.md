@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This is an AWS-readiness pre-publishing step for OmniStream container images. The repository now defines deterministic image names and tags for the three active services so CI can validate future release-shaped builds without publishing images or depending on AWS.
+This is an AWS-readiness image contract for OmniStream container images. The repository defines deterministic image names and tags for the three active services so CI can validate release-shaped builds and an opt-in manual workflow can publish the same immutable references to Amazon ECR.
 
-This contract does not introduce ECR, registry credentials, Terraform, Helm, AWS Actions, or deployment behavior. Docker Compose remains the local developer runtime.
+This contract does not introduce Terraform, Helm, AWS infrastructure creation, or deployment behavior. Docker Compose remains the local developer runtime.
 
 ## Services
 
@@ -43,7 +43,7 @@ ${OMNISTREAM_IMAGE_REGISTRY}/${OMNISTREAM_IMAGE_NAMESPACE}/processing-agent
 ${OMNISTREAM_IMAGE_REGISTRY}/${OMNISTREAM_IMAGE_NAMESPACE}/producer
 ```
 
-Do not configure a live registry in CI until a separate publishing step is explicitly implemented.
+Local verification and regular CI leave `OMNISTREAM_IMAGE_REGISTRY` empty. The manual ECR publishing workflow gets the registry hostname from `aws-actions/amazon-ecr-login` and passes it to the resolver.
 
 ## Immutable Tags
 
@@ -61,7 +61,7 @@ omnistream/processing-agent:0.1.0-abc123def456
 omnistream/producer:0.1.0-abc123def456
 ```
 
-An immutable tag must not be reassigned to different image contents. Future publishing should push this exact tag after tests, Compose validation, and Docker builds pass.
+An immutable tag must not be reassigned to different image contents. Manual publishing pushes this exact tag and should be run only for commits whose test, Compose validation, and Docker build checks have passed.
 
 ## CI Behavior
 
@@ -71,7 +71,59 @@ GitHub Actions resolves the contract tags with:
 python3 scripts/resolve_image_tags.py
 ```
 
-The Docker validation job then builds all three service images with the resolved immutable tags. CI intentionally does not run `docker push`, does not request registry credentials, and does not use AWS credentials or AWS Actions.
+The Docker validation job then builds all three service images with the resolved immutable tags. The default CI workflow intentionally does not run `docker push`, does not request registry credentials, and does not use AWS credentials or AWS Actions.
+
+## Manual ECR Publishing
+
+`.github/workflows/publish-images.yml` is a manual-only `workflow_dispatch` workflow for publishing the three active service images to Amazon ECR. It does not run on push or pull request.
+
+The workflow:
+
+* checks out the repository;
+* validates required GitHub repository variables;
+* assumes an AWS role through GitHub Actions OIDC with `aws-actions/configure-aws-credentials`;
+* logs in to Amazon ECR with `aws-actions/amazon-ecr-login`;
+* resolves the final ECR image references with `scripts/resolve_image_tags.py`;
+* verifies that the expected ECR repositories already exist;
+* verifies that the resolved immutable tag has not already been published in those repositories;
+* builds `query-api`, `processing-agent`, and `producer`; and
+* pushes only the immutable `${APP_VERSION}-${GIT_SHA_SHORT}` tags.
+
+It never pushes `latest`, never reassigns an existing immutable tag, never creates ECR repositories, and never deploys services.
+
+### Required GitHub repository variables
+
+Configure these repository variables before running the workflow:
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `AWS_REGION` | Yes | AWS region containing the pre-existing ECR repositories. |
+| `AWS_ROLE_TO_ASSUME` | Yes | IAM role ARN trusted by the repository's GitHub Actions OIDC provider. |
+| `OMNISTREAM_IMAGE_NAMESPACE` | No | ECR repository namespace or prefix. Defaults to `omnistream`. |
+
+Do not configure long-lived AWS access keys for this workflow. The intended authentication path is GitHub Actions OIDC.
+
+The OIDC role needs permission to log in to ECR, describe the target repositories and image tags, and push image layers/manifests. Repository creation is intentionally outside this workflow.
+
+### Required ECR repositories
+
+The workflow assumes these ECR repositories already exist in `AWS_REGION`:
+
+```text
+${OMNISTREAM_IMAGE_NAMESPACE}/query-api
+${OMNISTREAM_IMAGE_NAMESPACE}/processing-agent
+${OMNISTREAM_IMAGE_NAMESPACE}/producer
+```
+
+With the default namespace, those repository names are:
+
+```text
+omnistream/query-api
+omnistream/processing-agent
+omnistream/producer
+```
+
+If any repository is missing or the assumed role cannot describe it, the workflow fails before building or pushing images.
 
 ## Local Verification
 

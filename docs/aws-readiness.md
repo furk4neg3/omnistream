@@ -4,7 +4,7 @@
 
 This is the first AWS-readiness artifact for OmniStream. It maps the current local, Docker Compose-based prototype to likely future AWS resources and identifies the practical gaps to close before a first cloud deployment.
 
-This document is not an AWS deployment plan that has already been implemented. It does not introduce Terraform, Helm, AWS SDK usage, deployment manifests, or cloud dependencies. The implemented baseline remains the local production-style prototype in this repository.
+This document is not an AWS deployment plan that has already been implemented. It does not introduce Terraform, Helm, AWS SDK usage, deployment manifests, or runtime cloud dependencies. The implemented baseline remains the local production-style prototype in this repository, with a manual ECR image publishing step available for prepared AWS accounts.
 
 ## Current local baseline
 
@@ -19,6 +19,7 @@ The current repo implements a three-service local stack with shared file-backed 
 * `/metrics` returns query-api JSON counters, timings, uptime, and vector store summary. The producer and processing-agent also write local metrics/status snapshots for the query API to read.
 * LLM-backed `/ask` behavior is opt-in through `ENABLE_LLM_RAG=true` and an API key. The default local path uses the deterministic local fallback and `hashing-local-v1` embeddings.
 * CI runs the Python test suite with `bash scripts/run_tests.sh`, validates the Compose configuration with `docker compose config`, and builds the `query-api`, `processing-agent`, and `producer` Docker images.
+* A separate manual-only GitHub Actions workflow can publish immutable `query-api`, `processing-agent`, and `producer` image tags to pre-existing Amazon ECR repositories using GitHub Actions OIDC. It does not deploy services or create AWS resources.
 
 ## Local-to-AWS mapping table
 
@@ -31,7 +32,7 @@ The current repo implements a three-service local stack with shared file-backed 
 | Local checkpoint and status files under `.local/omnistream/state` | DynamoDB, S3, CloudWatch metrics, and CloudWatch logs | Split durable processing state from observability. Checkpoints should be owned by the consumer path; status snapshots should become metrics/logs. |
 | `.env` and `.env.example` | SSM Parameter Store and AWS Secrets Manager | Keep non-secret configuration in SSM and provider keys in Secrets Manager. Do not carry local host paths into cloud config. |
 | Docker Compose services | ECS services/tasks or EKS deployments | Compose remains the local developer runtime. AWS should use published images and cloud-native task/deployment definitions later. |
-| GitHub Actions test and Docker build validation | CI pipeline for image publishing and deployment promotion | Extend the existing test/build gates before adding image push, environment promotion, and deployment steps. |
+| GitHub Actions test, Docker build validation, and manual ECR image publishing | CI pipeline for deployment promotion | Keep image publishing separate from environment promotion and deployment steps. The current publish workflow assumes ECR repositories and an OIDC role already exist. |
 | Local JSON logs and `/metrics` JSON responses | CloudWatch logs/metrics and optionally Prometheus/Grafana | Preserve structured event names and counters; add dashboards and alarms once services run in AWS. |
 | Optional LLM provider key for `/ask` | Secrets Manager external API secret, or a later Bedrock path | Keep LLM enablement behind a feature flag. Bedrock can be evaluated after the first container deployment path is stable. |
 
@@ -44,6 +45,8 @@ Keep the current Compose workflow as the source of truth for local development a
 ### Phase 1: container hardening and image publishing
 
 Harden the existing Dockerfiles for a future orchestrated runtime, then publish versioned images from CI. Keep the current service commands and API behavior intact while adding production-oriented image hygiene and reproducible tags.
+
+The repository now includes an opt-in manual ECR publishing workflow for immutable service image tags. ECR repository provisioning, OIDC role setup in AWS, runtime task/deployment definitions, and environment promotion remain separate concerns.
 
 ### Phase 2: AWS networking/config/secrets skeleton
 
@@ -79,14 +82,16 @@ Promote structured logs, metrics, deployment status, and release gates into AWS-
 * Local dependency visibility through producer and processing-agent status files.
 * Embedding model-name compatibility checks between vector store contents and service configuration.
 * CI test execution, Compose validation, and Docker image build validation.
-* Documented container image naming/tagging contract for `query-api`, `processing-agent`, and `producer`, with CI builds using immutable app-version and git-SHA tags but no image publishing.
+* Documented container image naming/tagging contract for `query-api`, `processing-agent`, and `producer`.
+* Manual ECR image publishing workflow for the three active service images, using GitHub Actions OIDC and immutable app-version plus git-SHA tags.
 
 ### Missing before first AWS deployment
 
-* Published container image registry flow, likely ECR. The image naming/tagging contract exists, but no registry push is implemented yet.
+* Pre-existing ECR repositories and a GitHub Actions OIDC role in the target AWS account, if they have not already been configured outside this repository.
 * Additional runtime hardening such as explicit resource limits and production image tagging.
 * AWS account, region, environment naming, networking, IAM, config, and secrets boundaries.
 * Decision on ECS versus EKS for the first service deployment.
+* ECS task definitions, EKS manifests, or another runtime deployment path for the published images.
 * Cloud-safe replacement for local file paths used by event input, enriched output, checkpoints, status files, and vector store storage.
 * Stream checkpoint and retry semantics for Kinesis or MSK.
 * Managed vector database selection and migration plan for current local vector store metadata.
@@ -107,7 +112,7 @@ Promote structured logs, metrics, deployment status, and release gates into AWS-
 
 * Region and environment naming: use one primary AWS region for the first deployment, with explicit environment names such as `dev`, `staging`, and `prod`. The local `.env.example` defaults to `AWS_REGION=us-east-1`, but the actual deployment region should be chosen before infrastructure work starts.
 * Config and secrets: non-secret values from `.env.example` should map to SSM Parameter Store. Provider API keys such as `GEMINI_API_KEY` and `GOOGLE_API_KEY` should map to Secrets Manager. Long-lived AWS access keys should not be stored in `.env`.
-* Image registry: the first AWS deployment should use published, immutable container image tags, likely in ECR, instead of building images on the target runtime.
+* Image registry: the first AWS deployment should use published, immutable container image tags in ECR instead of building images on the target runtime. The current manual workflow publishes images only; it does not create repositories or deploy services.
 * State and checkpoint ownership: processing checkpoints should be owned by the stream consumer path, not by the query API. Status/metrics should become observable telemetry rather than shared local files.
 * Vector database compatibility: the selected vector database must preserve the embedding model name and vector dimension expectations currently captured in the local vector store manifest. Changing `OMNISTREAM_EMBEDDING_MODEL_NAME` requires a deliberate reindex or migration.
 * Health checks: `/health` is the initial load balancer and orchestrator health-check candidate for `query-api`. Processing-agent needs an equivalent cloud lifecycle signal through logs, metrics, or task health.

@@ -63,7 +63,7 @@ OmniStream is currently a **Work in Progress**. The architecture is defined, and
 
 The local prototype is ready enough to begin AWS-readiness work, but no AWS deployment is implemented yet. See [docs/aws-readiness.md](docs/aws-readiness.md) for the first bounded migration-readiness artifact mapping the current Compose services, local state, config, CI, and API surfaces to future AWS resources and gaps.
 
-The container image naming and tagging contract is documented in [docs/container-images.md](docs/container-images.md). CI builds the three active service images with deterministic app-version and git-SHA tags, but images are not pushed anywhere yet.
+The container image naming and tagging contract is documented in [docs/container-images.md](docs/container-images.md). CI builds the three active service images with deterministic app-version and git-SHA tags, and an opt-in manual workflow can publish those immutable tags to pre-existing ECR repositories without deploying the app.
 
 ---
 
