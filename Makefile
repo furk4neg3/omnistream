@@ -7,7 +7,7 @@ lint:
 	@echo "lint step coming soon"
 
 test:
-	@echo "test step coming soon"
+	bash scripts/run_tests.sh
 
 compose-up:
 	docker compose up --build

@@ -13,11 +13,13 @@ from app.models import (
     QueryRequest,
     QueryResponse,
     RawEvent,
+    StatusResponse,
     Timing,
 )
 from app.observability import log_event, runtime_metrics
 from app.rag import fallback_answer
 from app.retrieval import QueryEngine
+from app.status import load_dependency_status
 
 
 @lru_cache
@@ -69,6 +71,15 @@ app = FastAPI(
     version=settings.app_version,
 )
 router = APIRouter()
+
+
+def vector_store_summary(engine: QueryEngine) -> dict[str, str | int]:
+    return {
+        "model_name": engine.manifest.get("model_name") or settings.embedding_model_name,
+        "record_count": engine.manifest.get("record_count", 0),
+        "embedding_dim": engine.manifest.get("embedding_dim", 0),
+        "vector_store_dir": settings.vector_store_dir,
+    }
 
 
 @app.middleware("http")
@@ -141,12 +152,28 @@ def metrics() -> MetricsResponse:
         started_at=snapshot["started_at"],
         counters=snapshot["counters"],
         timings_ms=snapshot["timings_ms"],
-        vector_store={
-            "model_name": engine.manifest.get("model_name") or settings.embedding_model_name,
-            "record_count": engine.manifest.get("record_count", 0),
-            "embedding_dim": engine.manifest.get("embedding_dim", 0),
-            "vector_store_dir": settings.vector_store_dir,
-        },
+        vector_store=vector_store_summary(engine),
+    )
+
+
+@router.get("/status", response_model=StatusResponse)
+def status() -> StatusResponse:
+    engine = get_query_engine()
+    engine.reload_if_changed()
+    snapshot = runtime_metrics.snapshot()
+
+    return StatusResponse(
+        service="query-api",
+        status="ok",
+        app_name=settings.app_name,
+        app_version=settings.app_version,
+        started_at=snapshot["started_at"],
+        uptime_seconds=snapshot["uptime_seconds"],
+        counters=snapshot["counters"],
+        timings_ms=snapshot["timings_ms"],
+        vector_store=vector_store_summary(engine),
+        processing_agent=load_dependency_status(settings.processing_agent_metrics_file),
+        producer=load_dependency_status(settings.producer_metrics_file),
     )
 
 

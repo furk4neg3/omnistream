@@ -10,6 +10,8 @@ services:
       APP_VERSION: ${APP_VERSION:-0.1.0}
       VECTOR_STORE_DIR: /workspace/local-data/vector_store
       EMBEDDING_MODEL_NAME: ${OMNISTREAM_EMBEDDING_MODEL_NAME:-hashing-local-v1}
+      PROCESSING_AGENT_METRICS_FILE: /workspace/local-data/state/processing-agent-metrics.json
+      PRODUCER_METRICS_FILE: /workspace/local-data/state/producer-metrics.json
       ENABLE_LLM_RAG: ${ENABLE_LLM_RAG:-false}
       LLM_MODEL_NAME: ${LLM_MODEL_NAME:-gemini-3-flash-preview}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}

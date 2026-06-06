@@ -76,6 +76,8 @@ class Settings:
     app_version: str
     vector_store_dir: str
     embedding_model_name: str
+    processing_agent_metrics_file: str
+    producer_metrics_file: str
 
     enable_llm_rag: bool
     llm_model_name: str
@@ -122,6 +124,14 @@ def load_settings() -> Settings:
         "EMBEDDING_MODEL_NAME",
         "all-MiniLM-L6-v2",
     )
+    processing_agent_metrics_file, _ = resolve_env(
+        "PROCESSING_AGENT_METRICS_FILE",
+        str(REPO_ROOT / ".local" / "omnistream" / "state" / "processing-agent-metrics.json"),
+    )
+    producer_metrics_file, _ = resolve_env(
+        "PRODUCER_METRICS_FILE",
+        str(REPO_ROOT / ".local" / "omnistream" / "state" / "producer-metrics.json"),
+    )
 
     enable_llm_rag_raw, _ = resolve_env("ENABLE_LLM_RAG", "true")
     llm_model_name, _ = resolve_env("LLM_MODEL_NAME", "gemini-3-flash-preview")
@@ -143,6 +153,10 @@ def load_settings() -> Settings:
         vector_store_dir=vector_store_dir
         or str(REPO_ROOT / "services" / "indexer" / "local_vector_store"),
         embedding_model_name=embedding_model_name or "all-MiniLM-L6-v2",
+        processing_agent_metrics_file=processing_agent_metrics_file
+        or str(REPO_ROOT / ".local" / "omnistream" / "state" / "processing-agent-metrics.json"),
+        producer_metrics_file=producer_metrics_file
+        or str(REPO_ROOT / ".local" / "omnistream" / "state" / "producer-metrics.json"),
         enable_llm_rag=env_bool(enable_llm_rag_raw, True),
         llm_model_name=llm_model_name or "gemini-3-flash-preview",
         gemini_api_key=gemini_api_key,

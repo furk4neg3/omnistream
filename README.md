@@ -67,7 +67,7 @@ The local stack is intentionally file-backed so it maps cleanly to managed servi
 
 * `producer` appends raw support events to a JSONL file, analogous to a future Kinesis/MSK producer.
 * `processing-agent` polls that append-only file, checkpoints progress, enriches/chunks events, embeds them, and updates the local vector store incrementally.
-* `query-api` serves `/health`, `/search`, `/ask`, and `/ingest` over HTTP using the same vector store mount.
+* `query-api` serves `/health`, `/status`, `/search`, `/ask`, and `/ingest` over HTTP using the same vector store mount.
 
 ### Prerequisites
 
@@ -76,6 +76,24 @@ The local stack is intentionally file-backed so it maps cleanly to managed servi
 * Optional: `GEMINI_API_KEY` or `GOOGLE_API_KEY` when running grounded LLM answers
 
 The first run may take a few minutes because the images install Python dependencies. Compose uses a lightweight deterministic local embedding backend by default so the stack can run without model downloads.
+
+### Automated Tests
+
+Run the local automated test suite from the repository root:
+
+```bash
+make test
+```
+
+The test runner scopes `PYTHONPATH` per service so each Python service can use its own `app` package namespace.
+
+The Gemini smoke check is manual-only and is not part of automated tests:
+
+```bash
+PYTHONPATH=services/query-api python services/query-api/scripts/check_gemini.py
+```
+
+It requires the query-api dependencies plus `GEMINI_API_KEY` or `GOOGLE_API_KEY`, and may call the Gemini API.
 
 ### Start the Core Stack
 
@@ -146,6 +164,12 @@ curl -s http://localhost:8000/health | jq
 ```bash
 curl -s http://localhost:8000/metrics | jq
 ```
+
+```bash
+curl -s http://localhost:8000/status | jq
+```
+
+`/status` combines query-api uptime, vector store summary, and the latest producer and processing-agent status snapshots. Missing snapshots are reported with `available: false`.
 
 ```bash
 curl -s http://localhost:8000/search \

@@ -148,3 +148,31 @@ class MetricsResponse(BaseModel):
     counters: dict[str, int]
     timings_ms: dict[str, dict[str, float | int]]
     vector_store: dict[str, Any]
+
+
+class VectorStoreSummary(BaseModel):
+    model_name: str
+    record_count: int
+    embedding_dim: int
+    vector_store_dir: str
+
+
+class DependencyStatus(BaseModel):
+    available: bool
+    path: str
+    reason: str | None = None
+    payload: dict[str, Any] | None = None
+
+
+class StatusResponse(BaseModel):
+    service: Literal["query-api"]
+    status: Literal["ok"]
+    app_name: str
+    app_version: str
+    started_at: str
+    uptime_seconds: float
+    counters: dict[str, int]
+    timings_ms: dict[str, dict[str, float | int]]
+    vector_store: VectorStoreSummary
+    processing_agent: DependencyStatus
+    producer: DependencyStatus
