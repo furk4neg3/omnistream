@@ -1,0 +1,10 @@
+project_name    = "omnistream"
+environment     = "prod"
+aws_region      = "us-east-1"
+owner           = "portfolio-owner"
+cost_center     = ""
+image_namespace = "omnistream"
+
+additional_tags = {
+  Purpose = "aws-readiness-skeleton"
+}

@@ -4,7 +4,7 @@
 
 This document defines the first ECS runtime boundary for OmniStream's existing containerized services. It is a design and AWS-readiness artifact only.
 
-It does not create an implemented AWS deployment. It does not add Terraform, ECS task-definition JSON, deployment manifests, AWS SDK runtime dependencies, live AWS resources, or any requirement for AWS credentials. Docker Compose remains the implemented local runtime.
+It does not create an implemented AWS deployment. A minimal non-deploying Terraform skeleton now exists under `infra/` for environment, provider, naming, tag, and future configuration path conventions only. This design does not add ECS task-definition JSON, deployment manifests, AWS SDK runtime dependencies, live AWS resources, or any requirement for AWS credentials. Docker Compose remains the implemented local runtime.
 
 This design follows [ADR 0001](adr/0001-initial-aws-runtime-target.md), which chooses ECS-first as the initial AWS runtime target while keeping EKS and other managed services available as later options.
 
@@ -179,7 +179,7 @@ Likely later replacements include a managed stream for raw events, durable check
 
 This design intentionally does not:
 
-* add Terraform or any other infrastructure-as-code implementation;
+* add deploying Terraform resources or any runtime infrastructure implementation;
 * add ECS task-definition JSON;
 * add Kubernetes, EKS, or Helm manifests;
 * create live AWS resources;

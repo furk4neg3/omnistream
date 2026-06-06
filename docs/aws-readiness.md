@@ -4,7 +4,7 @@
 
 This is the first AWS-readiness artifact for OmniStream. It maps the current local, Docker Compose-based prototype to likely future AWS resources and identifies the practical gaps to close before a first cloud deployment.
 
-This document is not an AWS deployment plan that has already been implemented. It does not introduce Terraform, Helm, AWS SDK usage, deployment manifests, or runtime cloud dependencies. The implemented baseline remains the local production-style prototype in this repository, with a manual ECR image publishing step available for prepared AWS accounts.
+This document is not an AWS deployment plan that has already been implemented. It does not introduce Helm, AWS SDK usage, deployment manifests, or runtime cloud dependencies. A minimal non-deploying Terraform skeleton now exists under `infra/` for environment, provider, naming, tag, and future configuration path conventions only. The implemented baseline remains the local production-style prototype in this repository, with a manual ECR image publishing step available for prepared AWS accounts.
 
 [ADR 0001](adr/0001-initial-aws-runtime-target.md) records ECS-first as the initial AWS runtime target. This is a target decision only; no ECS deployment or task definitions exist in this repository yet.
 
@@ -54,7 +54,7 @@ The repository now includes an opt-in manual ECR publishing workflow for immutab
 
 ### Phase 2: AWS networking/config/secrets skeleton
 
-Define environment names, region conventions, VPC/subnet boundaries, IAM role shape, SSM parameters, and Secrets Manager entries. This phase should establish boundaries without deploying the application services yet.
+Define environment names, region conventions, naming/tag boundaries, VPC/subnet boundaries, IAM role shape, SSM parameters, and Secrets Manager entries. The current `infra/` skeleton starts this phase by defining non-deploying environment/provider/naming/tag outputs only; it does not create VPCs, IAM roles, SSM parameters, Secrets Manager secrets, or application services.
 
 ### Phase 3: deploy query-api and processing-agent containers on ECS
 
@@ -94,7 +94,7 @@ Promote structured logs, metrics, deployment status, and release gates into AWS-
 
 * Pre-existing ECR repositories and a GitHub Actions OIDC role in the target AWS account, if they have not already been configured outside this repository.
 * Additional runtime hardening such as explicit resource limits and production image tagging.
-* AWS account, region, environment naming, networking, IAM, config, and secrets boundaries.
+* Real AWS account, networking, IAM, config, and secrets boundaries beyond the current non-deploying Terraform naming/tag skeleton.
 * ECS task definitions, EKS manifests, or another runtime deployment implementation for the published images.
 * Cloud-safe replacement for local file paths used by event input, enriched output, checkpoints, status files, and vector store storage.
 * Stream checkpoint and retry semantics for Kinesis or MSK.
@@ -104,7 +104,7 @@ Promote structured logs, metrics, deployment status, and release gates into AWS-
 
 ### Intentionally deferred
 
-* Terraform, Helm, or other infrastructure implementation.
+* Deploying Terraform resources, Helm, or other runtime infrastructure implementation.
 * Kinesis/MSK runtime integration.
 * Managed vector database provisioning.
 * Bedrock integration or replacement of the optional external LLM path.
