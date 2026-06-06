@@ -29,6 +29,11 @@ class AgentMetrics:
         self.started_at = utc_now()
         self._started = perf_counter()
         self.counters: defaultdict[str, int] = defaultdict(int)
+        self.route_metrics: dict[str, defaultdict[str, int]] = {
+            "events_by_type_total": defaultdict(int),
+            "chunks_by_event_type_total": defaultdict(int),
+            "router_labels_total": defaultdict(int),
+        }
         self.last_result: dict[str, Any] | None = None
         self.last_error: dict[str, Any] | None = None
         self.config = {
@@ -42,9 +47,17 @@ class AgentMetrics:
             "loop_forever": settings.loop_forever,
         }
 
+    def _record_route_counts(self, metric_name: str, counts: dict[str, Any]) -> None:
+        totals = self.route_metrics[metric_name]
+        for key, value in counts.items():
+            totals[key] += int(value or 0)
+
     def record_result(self, result: dict[str, Any], processing_ms: float) -> None:
         raw_events_processed = int(result.get("raw_events_processed") or 0)
         chunks_written = int(result.get("chunks_written") or 0)
+        event_type_counts = dict(result.get("event_type_counts") or {})
+        chunk_counts_by_event_type = dict(result.get("chunk_counts_by_event_type") or {})
+        router_label_counts = dict(result.get("router_label_counts") or {})
 
         self.counters["polls_total"] += 1
         self.counters["raw_events_processed_total"] += raw_events_processed
@@ -55,8 +68,15 @@ class AgentMetrics:
         else:
             self.counters["idle_polls_total"] += 1
 
+        self._record_route_counts("events_by_type_total", event_type_counts)
+        self._record_route_counts("chunks_by_event_type_total", chunk_counts_by_event_type)
+        self._record_route_counts("router_labels_total", router_label_counts)
+
         self.last_result = {
             **result,
+            "event_type_counts": event_type_counts,
+            "chunk_counts_by_event_type": chunk_counts_by_event_type,
+            "router_label_counts": router_label_counts,
             "processing_ms": round(processing_ms, 2),
             "observed_at": utc_now(),
         }
@@ -78,6 +98,10 @@ class AgentMetrics:
             "uptime_seconds": round(perf_counter() - self._started, 2),
             "config": self.config,
             "counters": dict(self.counters),
+            "route_metrics": {
+                metric_name: dict(totals)
+                for metric_name, totals in self.route_metrics.items()
+            },
             "last_result": self.last_result,
             "last_error": self.last_error,
         }

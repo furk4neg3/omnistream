@@ -22,8 +22,23 @@ def test_agent_metrics_snapshot_and_status_file(tmp_path):
             "chunks_written": 3,
             "vector_record_count": 3,
             "next_line": 2,
+            "event_type_counts": {"support_ticket": 2},
+            "chunk_counts_by_event_type": {"support_ticket": 3},
+            "router_label_counts": {"support_ticket:v1": 2},
         },
         processing_ms=12.34,
+    )
+    metrics.record_result(
+        {
+            "raw_events_processed": 1,
+            "chunks_written": 1,
+            "vector_record_count": 4,
+            "next_line": 3,
+            "event_type_counts": {"customer_chat_message": 1},
+            "chunk_counts_by_event_type": {"customer_chat_message": 1},
+            "router_label_counts": {"customer_chat_message:v1": 1},
+        },
+        processing_ms=5.67,
     )
 
     status_file = tmp_path / "state" / "processing-agent-metrics.json"
@@ -31,6 +46,27 @@ def test_agent_metrics_snapshot_and_status_file(tmp_path):
 
     body = json.loads(status_file.read_text(encoding="utf-8"))
     assert body["service"] == "processing-agent"
-    assert body["counters"]["raw_events_processed_total"] == 2
-    assert body["counters"]["chunks_written_total"] == 3
-    assert body["last_result"]["processing_ms"] == 12.34
+    assert body["counters"]["raw_events_processed_total"] == 3
+    assert body["counters"]["chunks_written_total"] == 4
+    assert body["route_metrics"] == {
+        "events_by_type_total": {
+            "support_ticket": 2,
+            "customer_chat_message": 1,
+        },
+        "chunks_by_event_type_total": {
+            "support_ticket": 3,
+            "customer_chat_message": 1,
+        },
+        "router_labels_total": {
+            "support_ticket:v1": 2,
+            "customer_chat_message:v1": 1,
+        },
+    }
+    assert body["last_result"]["processing_ms"] == 5.67
+    assert body["last_result"]["event_type_counts"] == {"customer_chat_message": 1}
+    assert body["last_result"]["chunk_counts_by_event_type"] == {
+        "customer_chat_message": 1,
+    }
+    assert body["last_result"]["router_label_counts"] == {
+        "customer_chat_message:v1": 1,
+    }

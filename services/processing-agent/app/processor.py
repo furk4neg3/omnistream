@@ -1,3 +1,5 @@
+from collections import Counter
+
 from app.checkpoint import load_checkpoint, save_checkpoint
 from app.config import Settings
 from app.embedder import LocalEmbedder
@@ -35,15 +37,23 @@ class ProcessingAgent:
                 "chunks_written": 0,
                 "vector_record_count": None,
                 "next_line": start_line,
+                "event_type_counts": {},
+                "chunk_counts_by_event_type": {},
+                "router_label_counts": {},
             }
 
         enriched_events = []
         chunk_records = []
         chunk_texts = []
+        event_type_counts: Counter[str] = Counter()
+        chunk_counts_by_event_type: Counter[str] = Counter()
+        router_label_counts: Counter[str] = Counter()
 
         for raw_event in raw_events:
             validate_raw_event(raw_event)
             route = route_raw_event(raw_event)
+            event_type_counts[route.event_type] += 1
+            router_label_counts[route.router_label] += 1
 
             enriched_event = enrich_routed_event(
                 raw_event=raw_event,
@@ -58,6 +68,7 @@ class ProcessingAgent:
             enriched_events.append(enriched_event)
 
             event_chunk_records = build_chunk_records(enriched_event)
+            chunk_counts_by_event_type[route.event_type] += len(event_chunk_records)
             chunk_records.extend(event_chunk_records)
             chunk_texts.extend(record["text"] for record in event_chunk_records)
 
@@ -78,4 +89,7 @@ class ProcessingAgent:
             "chunks_written": len(chunk_records),
             "vector_record_count": manifest["record_count"],
             "next_line": next_line,
+            "event_type_counts": dict(event_type_counts),
+            "chunk_counts_by_event_type": dict(chunk_counts_by_event_type),
+            "router_label_counts": dict(router_label_counts),
         }

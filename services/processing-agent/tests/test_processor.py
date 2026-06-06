@@ -121,6 +121,9 @@ def test_processing_agent_is_idempotent_with_checkpoint(tmp_path):
 
     assert first["raw_events_processed"] == 1
     assert second["raw_events_processed"] == 0
+    assert second["event_type_counts"] == {}
+    assert second["chunk_counts_by_event_type"] == {}
+    assert second["router_label_counts"] == {}
 
     _, records, manifest = load_local_vector_store(str(vector_store_dir))
     assert manifest["record_count"] == len(records)
@@ -194,6 +197,18 @@ def test_processing_agent_processes_mixed_event_types(tmp_path):
 
     assert result["raw_events_processed"] == 2
     assert result["chunks_written"] == 2
+    assert result["event_type_counts"] == {
+        "support_ticket": 1,
+        "customer_chat_message": 1,
+    }
+    assert result["chunk_counts_by_event_type"] == {
+        "support_ticket": 1,
+        "customer_chat_message": 1,
+    }
+    assert result["router_label_counts"] == {
+        "support_ticket:v1": 1,
+        "customer_chat_message:v1": 1,
+    }
 
     _, records, manifest = load_local_vector_store(str(vector_store_dir))
     assert manifest["record_count"] == 2

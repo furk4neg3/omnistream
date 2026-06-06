@@ -54,6 +54,9 @@ def main() -> None:
                 chunks_written=result["chunks_written"],
                 vector_record_count=result["vector_record_count"],
                 next_line=result["next_line"],
+                event_type_counts=result["event_type_counts"],
+                chunk_counts_by_event_type=result["chunk_counts_by_event_type"],
+                router_label_counts=result["router_label_counts"],
                 processing_ms=round(processing_ms, 2),
             )
         else:
