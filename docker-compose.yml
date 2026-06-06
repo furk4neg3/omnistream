@@ -12,6 +12,7 @@ services:
       EMBEDDING_MODEL_NAME: ${OMNISTREAM_EMBEDDING_MODEL_NAME:-hashing-local-v1}
       PROCESSING_AGENT_METRICS_FILE: /workspace/local-data/state/processing-agent-metrics.json
       PRODUCER_METRICS_FILE: /workspace/local-data/state/producer-metrics.json
+      DEPENDENCY_STATUS_MAX_AGE_SECONDS: ${DEPENDENCY_STATUS_MAX_AGE_SECONDS:-30}
       ENABLE_LLM_RAG: ${ENABLE_LLM_RAG:-false}
       LLM_MODEL_NAME: ${LLM_MODEL_NAME:-gemini-3-flash-preview}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}

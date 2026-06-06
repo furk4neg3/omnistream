@@ -78,6 +78,7 @@ class Settings:
     embedding_model_name: str
     processing_agent_metrics_file: str
     producer_metrics_file: str
+    dependency_status_max_age_seconds: int
 
     enable_llm_rag: bool
     llm_model_name: str
@@ -132,6 +133,10 @@ def load_settings() -> Settings:
         "PRODUCER_METRICS_FILE",
         str(REPO_ROOT / ".local" / "omnistream" / "state" / "producer-metrics.json"),
     )
+    dependency_status_max_age_seconds_raw, _ = resolve_env(
+        "DEPENDENCY_STATUS_MAX_AGE_SECONDS",
+        "30",
+    )
 
     enable_llm_rag_raw, _ = resolve_env("ENABLE_LLM_RAG", "true")
     llm_model_name, _ = resolve_env("LLM_MODEL_NAME", "gemini-3-flash-preview")
@@ -157,6 +162,7 @@ def load_settings() -> Settings:
         or str(REPO_ROOT / ".local" / "omnistream" / "state" / "processing-agent-metrics.json"),
         producer_metrics_file=producer_metrics_file
         or str(REPO_ROOT / ".local" / "omnistream" / "state" / "producer-metrics.json"),
+        dependency_status_max_age_seconds=int(dependency_status_max_age_seconds_raw or "30"),
         enable_llm_rag=env_bool(enable_llm_rag_raw, True),
         llm_model_name=llm_model_name or "gemini-3-flash-preview",
         gemini_api_key=gemini_api_key,

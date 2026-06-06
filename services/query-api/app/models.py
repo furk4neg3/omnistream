@@ -161,6 +161,8 @@ class DependencyStatus(BaseModel):
     available: bool
     path: str
     reason: str | None = None
+    fresh: bool | None = None
+    age_seconds: float | None = None
     payload: dict[str, Any] | None = None
 
 

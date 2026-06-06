@@ -169,7 +169,7 @@ curl -s http://localhost:8000/metrics | jq
 curl -s http://localhost:8000/status | jq
 ```
 
-`/status` combines query-api uptime, vector store summary, and the latest producer and processing-agent status snapshots. Missing snapshots are reported with `available: false`.
+`/status` combines query-api uptime, vector store summary, and the latest producer and processing-agent status snapshots. Missing snapshots are reported with `available: false`. Running dependency snapshots also include `fresh` and `age_seconds`; if a running snapshot is older than `DEPENDENCY_STATUS_MAX_AGE_SECONDS` (default `30` in Compose), `/status` reports that dependency as stale. Completed producer snapshots remain valid because the producer is a one-shot service.
 
 ```bash
 curl -s http://localhost:8000/search \

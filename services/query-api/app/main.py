@@ -172,8 +172,14 @@ def status() -> StatusResponse:
         counters=snapshot["counters"],
         timings_ms=snapshot["timings_ms"],
         vector_store=vector_store_summary(engine),
-        processing_agent=load_dependency_status(settings.processing_agent_metrics_file),
-        producer=load_dependency_status(settings.producer_metrics_file),
+        processing_agent=load_dependency_status(
+            settings.processing_agent_metrics_file,
+            settings.dependency_status_max_age_seconds,
+        ),
+        producer=load_dependency_status(
+            settings.producer_metrics_file,
+            settings.dependency_status_max_age_seconds,
+        ),
     )
 
 
