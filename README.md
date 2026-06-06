@@ -129,6 +129,8 @@ Shared local state is mounted at `.local/omnistream`:
 * `vector_store/` for embeddings, records, and manifest files
 * `model-cache/` for downloaded embedding model files when optional model dependencies are enabled
 
+Service containers run as the non-root `omnistream` user, with UID/GID `1000` by default. On Linux hosts, make sure `.local/omnistream` is writable by that UID/GID, especially if Docker previously created the directory as root.
+
 ### Generate Events
 
 The producer is a controlled one-shot service under the `producer` profile:

@@ -42,6 +42,6 @@ For AWS deployment, store non-secret configuration separately from secrets:
 | `AWS_REGION` | `us-east-1` | AWS runtime environment | Region for future managed services. |
 | `KINESIS_STREAM_NAME` | `omnistream-raw-events` | SSM Parameter Store | Future stream name when the producer writes to Kinesis. |
 
-Local file paths such as `VECTOR_STORE_DIR`, `INPUT_FILE`, `OUTPUT_FILE`, `CHECKPOINT_FILE`, and `METRICS_FILE` are wired by Docker Compose to `.local/omnistream`. In AWS, replace those local mounts with managed storage, stream offsets, service metrics, and vector database configuration instead of carrying over host paths.
+Local file paths such as `VECTOR_STORE_DIR`, `INPUT_FILE`, `OUTPUT_FILE`, `CHECKPOINT_FILE`, and `METRICS_FILE` are wired by Docker Compose to `.local/omnistream`. Service containers run as the non-root `omnistream` user, with UID/GID `1000` by default, so Linux hosts should keep `.local/omnistream` writable by that UID/GID. In AWS, replace those local mounts with managed storage, stream offsets, service metrics, and vector database configuration instead of carrying over host paths.
 
 Avoid storing long-lived AWS access keys in `.env`. Prefer local AWS profiles for development and task or pod IAM roles for deployed services.

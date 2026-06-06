@@ -14,6 +14,7 @@ The current repo implements a three-service local stack with shared file-backed 
 * `processing-agent` runs continuously by default. It polls the append-only JSONL input file, reads from its checkpoint, validates raw events, routes them, enriches them, creates chunks, embeds those chunks, appends enriched records to `enriched/enriched_events.jsonl`, updates the local vector store, and saves the next checkpoint.
 * The local vector store is shared through the Compose mount `./.local/omnistream:/workspace/local-data`. Both `processing-agent` and `query-api` use `/workspace/local-data/vector_store`, and both are configured with the same embedding model name so the query API can fail loudly if it reads a vector store created with a different model.
 * `query-api` is a FastAPI service exposed on the local host port configured by `QUERY_API_PORT`, defaulting to `8000`. It exposes `/health`, `/metrics`, `/status`, `/search`, `/ask`, and `/ingest`.
+* The three active service images run as the non-root `omnistream` user, with UID/GID `1000` by default, while preserving the existing Compose commands and shared local mount.
 * `/status` combines query-api runtime state, vector store summary, and local dependency visibility from status files such as `state/processing-agent-metrics.json` and `state/producer-metrics.json`. Missing, unreadable, invalid, or stale status files are represented explicitly instead of being hidden.
 * `/metrics` returns query-api JSON counters, timings, uptime, and vector store summary. The producer and processing-agent also write local metrics/status snapshots for the query API to read.
 * LLM-backed `/ask` behavior is opt-in through `ENABLE_LLM_RAG=true` and an API key. The default local path uses the deterministic local fallback and `hashing-local-v1` embeddings.
@@ -71,6 +72,7 @@ Promote structured logs, metrics, deployment status, and release gates into AWS-
 * Three independently containerized services: `producer`, `processing-agent`, and `query-api`.
 * Docker Compose wiring with shared local state under `.local/omnistream`.
 * Environment-driven configuration with a committed `.env.example` template.
+* Non-root container runtime users for the active service images.
 * Local raw event generation for `support_ticket` and `customer_chat_message`.
 * Processing-agent polling, checkpointing, routing, enrichment, chunking, embedding, enriched JSONL output, and vector store upsert.
 * Query API endpoints for `/health`, `/metrics`, `/status`, `/search`, `/ask`, and `/ingest`.
@@ -81,7 +83,7 @@ Promote structured logs, metrics, deployment status, and release gates into AWS-
 ### Missing before first AWS deployment
 
 * Published container image registry flow, likely ECR.
-* Non-root or otherwise hardened container runtime posture, explicit resource limits, and production image tagging.
+* Additional runtime hardening such as explicit resource limits and production image tagging.
 * AWS account, region, environment naming, networking, IAM, config, and secrets boundaries.
 * Decision on ECS versus EKS for the first service deployment.
 * Cloud-safe replacement for local file paths used by event input, enriched output, checkpoints, status files, and vector store storage.
@@ -126,6 +128,6 @@ Promote structured logs, metrics, deployment status, and release gates into AWS-
 
 ## Suggested next AWS-readiness step
 
-Harden the Dockerfiles for future ECS deployment.
+Define the versioned image tagging and publishing contract for CI without introducing live AWS dependencies yet.
 
-This should be the next bounded step because the repo already has three Dockerized services and CI build validation. Improving image runtime posture, tagging assumptions, and ECS-compatible health/runtime expectations prepares the current implementation for AWS without introducing infrastructure, changing API contracts, or replacing the local Compose workflow.
+This should be the next bounded step because the service images now build with a non-root runtime posture, and CI already validates the three Docker builds. Keep this as a contract and documentation step until the project is ready to add ECR publishing or deployment resources.
