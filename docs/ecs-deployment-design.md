@@ -4,7 +4,7 @@
 
 This document defines the first ECS runtime boundary for OmniStream's existing containerized services. It is a design and AWS-readiness artifact only.
 
-It does not create an implemented AWS deployment. A minimal non-deploying Terraform skeleton now exists under `infra/` for environment, provider, naming, tag, and future configuration path conventions only. This design does not add ECS task-definition JSON, deployment manifests, AWS SDK runtime dependencies, live AWS resources, or any requirement for AWS credentials. Docker Compose remains the implemented local runtime.
+It does not create an implemented AWS deployment. A minimal non-deploying Terraform skeleton exists under `infra/` for environment, provider, naming, tag, and future configuration path conventions only. Static ECS task-definition templates now exist under `infra/ecs/` for `query-api` and `processing-agent` readiness. These templates are not wired to Terraform, are not registered with ECS, and do not create ECS services, AWS SDK runtime dependencies, live AWS resources, or any requirement for AWS credentials. Docker Compose remains the implemented local runtime.
 
 This design follows [ADR 0001](adr/0001-initial-aws-runtime-target.md), which chooses ECS-first as the initial AWS runtime target while keeping EKS and other managed services available as later options.
 
@@ -37,6 +37,8 @@ This boundary is intentionally smaller than a complete production migration. The
 | `query-api` | ALB-facing ECS service | Public or private Application Load Balancer listener, depending on environment | Runs the existing `services/query-api` image command on container port `8000`. The target group should use `/health`. |
 | `processing-agent` | Internal long-running ECS worker service or task | No public listener | Runs the existing `services/processing-agent` image command. It should have only internal network egress needed for future stream, state, vector database, metrics, and optional embedding/model dependencies. |
 | `producer` | Deferred; one-shot or demo-only ECS task later | No always-on exposure | Do not include `producer` in the first always-on ECS runtime. If needed later, run it explicitly as a one-shot/demo task rather than a continuously deployed service. |
+
+Static task-definition templates for the two always-on services are available in `infra/ecs/task-definitions/`. They are placeholder readiness artifacts, not deployment wiring.
 
 ## Container Image Source
 
@@ -180,7 +182,7 @@ Likely later replacements include a managed stream for raw events, durable check
 This design intentionally does not:
 
 * add deploying Terraform resources or any runtime infrastructure implementation;
-* add ECS task-definition JSON;
+* register ECS task definitions or create ECS services;
 * add Kubernetes, EKS, or Helm manifests;
 * create live AWS resources;
 * deploy OmniStream to AWS;

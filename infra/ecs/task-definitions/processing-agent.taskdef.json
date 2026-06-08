@@ -1,0 +1,120 @@
+{
+  "family": "omnistream-processing-agent",
+  "taskRoleArn": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OMNISTREAM_ENVIRONMENT}-omnistream-processing-agent-task-role",
+  "executionRoleArn": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OMNISTREAM_ENVIRONMENT}-omnistream-ecs-execution-role",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "512",
+  "memory": "1024",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "containerDefinitions": [
+    {
+      "name": "processing-agent",
+      "image": "${OMNISTREAM_IMAGE_REGISTRY}/${OMNISTREAM_IMAGE_NAMESPACE}/processing-agent:${APP_VERSION}-${GIT_SHA_SHORT}",
+      "essential": true,
+      "cpu": 512,
+      "memory": 1024,
+      "environment": [
+        {
+          "name": "INPUT_FILE",
+          "value": "/workspace/local-data/events/events.jsonl"
+        },
+        {
+          "name": "OUTPUT_FILE",
+          "value": "/workspace/local-data/enriched/enriched_events.jsonl"
+        },
+        {
+          "name": "CHECKPOINT_FILE",
+          "value": "/workspace/local-data/state/processing-checkpoint.json"
+        },
+        {
+          "name": "METRICS_FILE",
+          "value": "/workspace/local-data/state/processing-agent-metrics.json"
+        },
+        {
+          "name": "VECTOR_STORE_DIR",
+          "value": "/workspace/local-data/vector_store"
+        },
+        {
+          "name": "POLL_INTERVAL_SECONDS",
+          "value": "1.0"
+        },
+        {
+          "name": "PROCESSING_AGENT_HEALTHCHECK_MAX_AGE_SECONDS",
+          "value": "120"
+        },
+        {
+          "name": "LOOP_FOREVER",
+          "value": "true"
+        },
+        {
+          "name": "BATCH_SIZE",
+          "value": "32"
+        },
+        {
+          "name": "CHUNK_SIZE_WORDS",
+          "value": "80"
+        },
+        {
+          "name": "CHUNK_OVERLAP_WORDS",
+          "value": "20"
+        },
+        {
+          "name": "SCHEMA_VERSION",
+          "value": "v1"
+        },
+        {
+          "name": "PROCESSING_VERSION",
+          "value": "v1"
+        },
+        {
+          "name": "EMBEDDING_MODEL_NAME",
+          "value": "hashing-local-v1"
+        },
+        {
+          "name": "HF_HOME",
+          "value": "/workspace/local-data/model-cache/huggingface"
+        },
+        {
+          "name": "SENTENCE_TRANSFORMERS_HOME",
+          "value": "/workspace/local-data/model-cache/sentence-transformers"
+        },
+        {
+          "name": "TOKENIZERS_PARALLELISM",
+          "value": "false"
+        },
+        {
+          "name": "PYTHONUNBUFFERED",
+          "value": "1"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/aws/ecs/omnistream/${OMNISTREAM_ENVIRONMENT}/processing-agent",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "processing-agent",
+          "awslogs-create-group": "false"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD",
+          "python",
+          "-m",
+          "app.healthcheck"
+        ],
+        "interval": 30,
+        "timeout": 10,
+        "retries": 5,
+        "startPeriod": 120
+      },
+      "stopTimeout": 30
+    }
+  ]
+}

@@ -8,6 +8,11 @@ It follows the ECS-first direction from `docs/adr/0001-initial-aws-runtime-targe
 
 ```text
 infra/
+  ecs/
+    README.md
+    task-definitions/
+      query-api.taskdef.json
+      processing-agent.taskdef.json
   environments/
     dev/
       versions.tf
@@ -27,6 +32,8 @@ Each environment root is intentionally minimal and consistent. The roots configu
 
 The existing placeholder module directories are reserved for later work. They are not wired into these roots yet.
 
+The `ecs/` directory contains static ECS task-definition templates for the first always-on `query-api` and `processing-agent` service set. These templates are readiness artifacts only; they are not wired into Terraform and do not deploy or create resources.
+
 ## What This Defines
 
 The current skeleton defines conventions for:
@@ -39,6 +46,8 @@ The current skeleton defines conventions for:
 * future Secrets Manager name prefixes;
 * future CloudWatch log group prefixes; and
 * future ECR repository prefixes matching the existing image contract.
+
+The ECS task-definition templates additionally document first-pass Fargate CPU and memory assumptions, image placeholders, role placeholders, CloudWatch log placeholders, environment variables, and container health checks for the two always-on services.
 
 ## Non-goals
 
@@ -66,7 +75,13 @@ Do not put secrets, credentials, account IDs, fixed ARNs, or production-only val
 
 ## Verification
 
-These commands validate the current non-deploying skeleton without requiring AWS credentials:
+The Makefile-backed readiness check validates required AWS-readiness files, ECS task-definition JSON syntax, deterministic image-tag resolution, and Terraform formatting without requiring AWS credentials:
+
+```bash
+make aws-readiness-check
+```
+
+Terraform is required for the formatting check. The underlying direct command is:
 
 ```bash
 terraform fmt -check -recursive infra

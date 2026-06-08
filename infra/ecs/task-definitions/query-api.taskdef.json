@@ -1,0 +1,150 @@
+{
+  "family": "omnistream-query-api",
+  "taskRoleArn": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OMNISTREAM_ENVIRONMENT}-omnistream-query-api-task-role",
+  "executionRoleArn": "arn:aws:iam::${AWS_ACCOUNT_ID}:role/${OMNISTREAM_ENVIRONMENT}-omnistream-ecs-execution-role",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "256",
+  "memory": "512",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "containerDefinitions": [
+    {
+      "name": "query-api",
+      "image": "${OMNISTREAM_IMAGE_REGISTRY}/${OMNISTREAM_IMAGE_NAMESPACE}/query-api:${APP_VERSION}-${GIT_SHA_SHORT}",
+      "essential": true,
+      "cpu": 256,
+      "memory": 512,
+      "portMappings": [
+        {
+          "name": "query-api-http",
+          "containerPort": 8000,
+          "hostPort": 8000,
+          "protocol": "tcp",
+          "appProtocol": "http"
+        }
+      ],
+      "environment": [
+        {
+          "name": "APP_NAME",
+          "value": "OmniStream Query API"
+        },
+        {
+          "name": "APP_VERSION",
+          "value": "${APP_VERSION}"
+        },
+        {
+          "name": "VECTOR_STORE_DIR",
+          "value": "/workspace/local-data/vector_store"
+        },
+        {
+          "name": "EMBEDDING_MODEL_NAME",
+          "value": "hashing-local-v1"
+        },
+        {
+          "name": "PROCESSING_AGENT_METRICS_FILE",
+          "value": "/workspace/local-data/state/processing-agent-metrics.json"
+        },
+        {
+          "name": "PRODUCER_METRICS_FILE",
+          "value": "/workspace/local-data/state/producer-metrics.json"
+        },
+        {
+          "name": "DEPENDENCY_STATUS_MAX_AGE_SECONDS",
+          "value": "30"
+        },
+        {
+          "name": "ENABLE_LLM_RAG",
+          "value": "false"
+        },
+        {
+          "name": "LLM_MODEL_NAME",
+          "value": "gemini-3-flash-preview"
+        },
+        {
+          "name": "MAX_CONTEXT_CHUNKS",
+          "value": "5"
+        },
+        {
+          "name": "MAX_CONTEXT_CHARS",
+          "value": "6000"
+        },
+        {
+          "name": "LLM_TEMPERATURE",
+          "value": "0.2"
+        },
+        {
+          "name": "LLM_MAX_OUTPUT_TOKENS",
+          "value": "400"
+        },
+        {
+          "name": "CHUNK_SIZE_WORDS",
+          "value": "80"
+        },
+        {
+          "name": "CHUNK_OVERLAP_WORDS",
+          "value": "20"
+        },
+        {
+          "name": "SCHEMA_VERSION",
+          "value": "v1"
+        },
+        {
+          "name": "PROCESSING_VERSION",
+          "value": "v1"
+        },
+        {
+          "name": "HF_HOME",
+          "value": "/workspace/local-data/model-cache/huggingface"
+        },
+        {
+          "name": "SENTENCE_TRANSFORMERS_HOME",
+          "value": "/workspace/local-data/model-cache/sentence-transformers"
+        },
+        {
+          "name": "TOKENIZERS_PARALLELISM",
+          "value": "false"
+        },
+        {
+          "name": "PYTHONUNBUFFERED",
+          "value": "1"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "GOOGLE_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:omnistream/${OMNISTREAM_ENVIRONMENT}/query-api/google-api-key-${SECRET_RANDOM_SUFFIX}"
+        },
+        {
+          "name": "GEMINI_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:${AWS_REGION}:${AWS_ACCOUNT_ID}:secret:omnistream/${OMNISTREAM_ENVIRONMENT}/query-api/gemini-api-key-${SECRET_RANDOM_SUFFIX}"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/aws/ecs/omnistream/${OMNISTREAM_ENVIRONMENT}/query-api",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "query-api",
+          "awslogs-create-group": "false"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=10).read()"
+        ],
+        "interval": 30,
+        "timeout": 15,
+        "retries": 10,
+        "startPeriod": 120
+      }
+    }
+  ]
+}
