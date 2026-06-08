@@ -4,7 +4,7 @@
 
 This is an AWS-readiness image contract for OmniStream container images. The repository defines deterministic image names and tags for the three active services so CI can validate release-shaped builds and an opt-in manual workflow can publish the same immutable references to Amazon ECR.
 
-This contract does not introduce Terraform, Helm, AWS infrastructure creation, or deployment behavior. Docker Compose remains the local developer runtime.
+This contract does not introduce Helm or deployment behavior. Docker Compose remains the local developer runtime. Terraform can optionally define the ECR repositories and GitHub Actions OIDC/IAM prerequisites for the existing manual publish workflow, but only when an environment root explicitly enables and applies `infra/modules/ecr-publishing-prereqs`.
 
 ## Services
 
@@ -91,6 +91,8 @@ The workflow:
 
 It never pushes `latest`, never reassigns an existing immutable tag, never creates ECR repositories, and never deploys services.
 
+The required ECR repositories and OIDC publish role may be created outside Terraform or by explicitly enabling and applying the optional `ecr-publishing-prereqs` module in an environment root. The workflow itself still only builds and pushes images.
+
 ### Required GitHub repository variables
 
 Configure these repository variables before running the workflow:
@@ -103,11 +105,11 @@ Configure these repository variables before running the workflow:
 
 Do not configure long-lived AWS access keys for this workflow. The intended authentication path is GitHub Actions OIDC.
 
-The OIDC role needs permission to log in to ECR, describe the target repositories and image tags, and push image layers/manifests. Repository creation is intentionally outside this workflow.
+The OIDC role needs permission to log in to ECR, describe the target repositories and image tags, and push image layers/manifests. Repository creation is intentionally outside this workflow. If the optional Terraform module is applied, its `ecr_publishing_role_arn` output is the value to configure as `AWS_ROLE_TO_ASSUME`.
 
 ### Required ECR repositories
 
-The workflow assumes these ECR repositories already exist in `AWS_REGION`:
+The workflow assumes these ECR repositories already exist in `AWS_REGION`, either created manually or by applying the optional Terraform publishing prerequisites module:
 
 ```text
 ${OMNISTREAM_IMAGE_NAMESPACE}/query-api

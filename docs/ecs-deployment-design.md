@@ -44,7 +44,7 @@ Static task-definition templates for the two always-on services are available in
 
 ECS should consume immutable images produced by the existing image contract and manual ECR publishing workflow.
 
-The intended image source is Amazon ECR repositories that already exist outside this design:
+The intended image source is Amazon ECR repositories that already exist in the target AWS account:
 
 ```text
 ${OMNISTREAM_IMAGE_NAMESPACE}/query-api
@@ -52,7 +52,7 @@ ${OMNISTREAM_IMAGE_NAMESPACE}/processing-agent
 ${OMNISTREAM_IMAGE_NAMESPACE}/producer
 ```
 
-The existing manual workflow publishes immutable `${APP_VERSION}-${GIT_SHA_SHORT}` tags and does not push `latest`, create ECR repositories, or deploy services. The first ECS implementation should reference those immutable tags rather than mutable local `:local` tags.
+The existing manual workflow publishes immutable `${APP_VERSION}-${GIT_SHA_SHORT}` tags and does not push `latest`, create ECR repositories, or deploy services. Those repositories and the GitHub Actions OIDC publish role can be created manually or by explicitly enabling and applying the optional Terraform ECR publishing prerequisites module. The first ECS implementation should reference immutable tags rather than mutable local `:local` tags.
 
 ## Networking and ALB Exposure
 

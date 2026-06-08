@@ -13,14 +13,22 @@ infra/
     task-definitions/
       query-api.taskdef.json
       processing-agent.taskdef.json
+  modules/
+    ecr-publishing-prereqs/
+      main.tf
+      variables.tf
+      outputs.tf
+      README.md
   environments/
     dev/
+      main.tf
       versions.tf
       variables.tf
       locals.tf
       outputs.tf
       terraform.tfvars.example
     prod/
+      main.tf
       versions.tf
       variables.tf
       locals.tf
@@ -30,7 +38,7 @@ infra/
 
 Each environment root is intentionally minimal and consistent. The roots configure Terraform and the AWS provider, define safe input variables, calculate shared naming and tag locals, and output those conventions for later infrastructure steps.
 
-The existing placeholder module directories are reserved for later work. They are not wired into these roots yet.
+The optional `ecr-publishing-prereqs` module is wired into each root behind `enable_ecr_publishing_prereqs = false`. The committed default does not create resources. If explicitly enabled in an environment tfvars file and applied in a real AWS account, it creates only the ECR repositories and GitHub Actions OIDC/IAM prerequisites required by the existing manual image publishing workflow.
 
 The `ecs/` directory contains static ECS task-definition templates for the first always-on `query-api` and `processing-agent` service set. These templates are readiness artifacts only; they are not wired into Terraform and do not deploy or create resources.
 
@@ -47,13 +55,20 @@ The current skeleton defines conventions for:
 * future CloudWatch log group prefixes; and
 * future ECR repository prefixes matching the existing image contract.
 
+The optional ECR publishing prerequisites module can define:
+
+* ECR repositories for `query-api`, `processing-agent`, and `producer`;
+* immutable ECR image tags, scan-on-push, and repository encryption defaults;
+* a GitHub Actions OIDC provider and publish role; and
+* IAM permissions for the manual workflow to push images only to those repositories.
+
 The ECS task-definition templates additionally document first-pass Fargate CPU and memory assumptions, image placeholders, role placeholders, CloudWatch log placeholders, environment variables, and container health checks for the two always-on services.
 
 ## Non-goals
 
-This skeleton does not deploy OmniStream and does not create live AWS resources.
+The committed default skeleton does not deploy OmniStream and does not create live AWS resources.
 
-It does not create ECS clusters, ECS task definitions, ECS services, ECR repositories, IAM roles or policies, Kinesis streams, MSK resources, OpenSearch resources, S3 buckets, DynamoDB tables, CloudWatch log groups, SSM parameters, Secrets Manager secrets, VPCs, subnets, load balancers, alarms, dashboards, or any other AWS resource.
+Even when the ECR publishing prerequisites module is enabled, it does not create ECS clusters, ECS task definitions, ECS services, Kinesis streams, MSK resources, OpenSearch resources, S3 buckets, DynamoDB tables, CloudWatch log groups, SSM parameters, Secrets Manager secrets, VPCs, subnets, load balancers, alarms, dashboards, runtime task roles, or application deployment resources.
 
 It also does not change service source code, API contracts, Dockerfiles, Docker Compose behavior, CI image builds, or the manual ECR publishing workflow.
 
@@ -72,6 +87,14 @@ cp infra/environments/dev/terraform.tfvars.example infra/environments/dev/terraf
 ```
 
 Do not put secrets, credentials, account IDs, fixed ARNs, or production-only values in committed tfvars examples.
+
+The ECR/OIDC prerequisites remain off unless explicitly enabled:
+
+```hcl
+enable_ecr_publishing_prereqs = false
+```
+
+To apply them in a real AWS account, set that flag to `true`, replace the GitHub repository placeholders, review the OIDC thumbprint, and run Terraform from the selected environment root. After apply, use the `ecr_publishing_role_arn` output as the `AWS_ROLE_TO_ASSUME` GitHub repository variable for `.github/workflows/publish-images.yml`.
 
 ## Verification
 

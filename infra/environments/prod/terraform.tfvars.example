@@ -5,6 +5,19 @@ owner           = "portfolio-owner"
 cost_center     = ""
 image_namespace = "omnistream"
 
+enable_ecr_publishing_prereqs = false
+
+github_actions_repository_owner = "REPLACE_WITH_GITHUB_OWNER"
+github_actions_repository_name  = "REPLACE_WITH_GITHUB_REPOSITORY"
+github_actions_ref_patterns = [
+  "ref:refs/heads/main",
+]
+github_actions_publish_role_name = ""
+
+ecr_scan_on_push    = true
+ecr_encryption_type = "AES256"
+ecr_kms_key_arn     = null
+
 additional_tags = {
   Purpose = "aws-readiness-skeleton"
 }

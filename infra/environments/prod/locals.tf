@@ -31,4 +31,10 @@ locals {
   secrets_prefix        = "${local.normalized_project_name}/${local.normalized_environment}"
   log_group_prefix      = "/aws/ecs/${local.name_prefix}"
   ecr_repository_prefix = local.normalized_image_namespace
+
+  service_ecr_repositories = {
+    processing_agent = "${local.ecr_repository_prefix}/processing-agent"
+    producer         = "${local.ecr_repository_prefix}/producer"
+    query_api        = "${local.ecr_repository_prefix}/query-api"
+  }
 }

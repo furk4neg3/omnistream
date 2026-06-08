@@ -45,11 +45,7 @@ output "ecr_repository_prefix" {
 
 output "service_ecr_repositories" {
   description = "Expected ECR repository names for the existing service image contract."
-  value = {
-    processing_agent = "${local.ecr_repository_prefix}/processing-agent"
-    producer         = "${local.ecr_repository_prefix}/producer"
-    query_api        = "${local.ecr_repository_prefix}/query-api"
-  }
+  value       = local.service_ecr_repositories
 }
 
 output "service_log_group_names" {
@@ -58,4 +54,32 @@ output "service_log_group_names" {
     processing_agent = "${local.log_group_prefix}/processing-agent"
     query_api        = "${local.log_group_prefix}/query-api"
   }
+}
+
+output "ecr_publishing_repository_names" {
+  description = "ECR repository names for image publishing. When the optional module is disabled, these are expected names only."
+  value       = var.enable_ecr_publishing_prereqs ? module.ecr_publishing_prereqs[0].repository_names : local.service_ecr_repositories
+}
+
+output "ecr_publishing_repository_urls" {
+  description = "ECR repository URLs created by the optional publishing prerequisites module. Empty until the module is enabled and applied."
+  value = var.enable_ecr_publishing_prereqs ? module.ecr_publishing_prereqs[0].repository_urls : {
+    processing_agent = null
+    producer         = null
+    query_api        = null
+  }
+}
+
+output "ecr_publishing_repository_arns" {
+  description = "ECR repository ARNs created by the optional publishing prerequisites module. Empty until the module is enabled and applied."
+  value = var.enable_ecr_publishing_prereqs ? module.ecr_publishing_prereqs[0].repository_arns : {
+    processing_agent = null
+    producer         = null
+    query_api        = null
+  }
+}
+
+output "ecr_publishing_role_arn" {
+  description = "GitHub Actions publish role ARN created by the optional publishing prerequisites module. Null until enabled and applied."
+  value       = var.enable_ecr_publishing_prereqs ? module.ecr_publishing_prereqs[0].publish_role_arn : null
 }

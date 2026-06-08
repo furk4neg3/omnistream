@@ -4,7 +4,7 @@
 
 This is the first AWS-readiness artifact for OmniStream. It maps the current local, Docker Compose-based prototype to likely future AWS resources and identifies the practical gaps to close before a first cloud deployment.
 
-This document is not an AWS deployment plan that has already been implemented. It does not introduce Helm, AWS SDK usage, deployment manifests, or runtime cloud dependencies. A minimal non-deploying Terraform skeleton now exists under `infra/` for environment, provider, naming, tag, and future configuration path conventions only. The implemented baseline remains the local production-style prototype in this repository, with a manual ECR image publishing step available for prepared AWS accounts.
+This document is not an AWS deployment plan that has already been implemented. It does not introduce Helm, AWS SDK usage, deployment manifests, or runtime cloud dependencies. A minimal Terraform skeleton now exists under `infra/` for environment, provider, naming, tag, and future configuration path conventions. It also includes a default-disabled module for ECR repositories and GitHub Actions OIDC image-publishing prerequisites. The implemented baseline remains the local production-style prototype in this repository, with a manual ECR image publishing step available after the required AWS resources exist in a target account.
 
 [ADR 0001](adr/0001-initial-aws-runtime-target.md) records ECS-first as the initial AWS runtime target. This is a target decision only; no ECS deployment or task definitions exist in this repository yet.
 
@@ -23,7 +23,7 @@ The current repo implements a three-service local stack with shared file-backed 
 * `/metrics` returns query-api JSON counters, timings, uptime, and vector store summary. The producer and processing-agent also write local metrics/status snapshots for the query API to read.
 * LLM-backed `/ask` behavior is opt-in through `ENABLE_LLM_RAG=true` and an API key. The default local path uses the deterministic local fallback and `hashing-local-v1` embeddings.
 * CI runs the Python test suite with `bash scripts/run_tests.sh`, validates the Compose configuration with `docker compose config`, and builds the `query-api`, `processing-agent`, and `producer` Docker images.
-* A separate manual-only GitHub Actions workflow can publish immutable `query-api`, `processing-agent`, and `producer` image tags to pre-existing Amazon ECR repositories using GitHub Actions OIDC. It does not deploy services or create AWS resources.
+* A separate manual-only GitHub Actions workflow can publish immutable `query-api`, `processing-agent`, and `producer` image tags to Amazon ECR repositories using GitHub Actions OIDC. It does not deploy services or create AWS resources; the repositories and role must already exist from a manual setup or an applied Terraform module.
 
 ## Local-to-AWS mapping table
 
@@ -36,7 +36,7 @@ The current repo implements a three-service local stack with shared file-backed 
 | Local checkpoint and status files under `.local/omnistream/state` | DynamoDB, S3, CloudWatch metrics, and CloudWatch logs | Split durable processing state from observability. Checkpoints should be owned by the consumer path; status snapshots should become metrics/logs. |
 | `.env` and `.env.example` | SSM Parameter Store and AWS Secrets Manager | Keep non-secret configuration in SSM and provider keys in Secrets Manager. Do not carry local host paths into cloud config. |
 | Docker Compose services | ECS services/tasks first, with EKS deployments still possible later | Compose remains the local developer runtime. AWS should use published images and cloud-native task/deployment definitions later. |
-| GitHub Actions test, Docker build validation, and manual ECR image publishing | CI pipeline for deployment promotion | Keep image publishing separate from environment promotion and deployment steps. The current publish workflow assumes ECR repositories and an OIDC role already exist. |
+| GitHub Actions test, Docker build validation, and manual ECR image publishing | CI pipeline for deployment promotion | Keep image publishing separate from environment promotion and deployment steps. The current publish workflow assumes ECR repositories and an OIDC role already exist in the AWS account, whether created manually or through the optional Terraform module. |
 | Local JSON logs and `/metrics` JSON responses | CloudWatch logs/metrics and optionally Prometheus/Grafana | Preserve structured event names and counters; add dashboards and alarms once services run in AWS. |
 | Optional LLM provider key for `/ask` | Secrets Manager external API secret, or a later Bedrock path | Keep LLM enablement behind a feature flag. Bedrock can be evaluated after the first container deployment path is stable. |
 
@@ -50,7 +50,7 @@ Keep the current Compose workflow as the source of truth for local development a
 
 Harden the existing Dockerfiles for a future orchestrated runtime, then publish versioned images from CI. Keep the current service commands and API behavior intact while adding production-oriented image hygiene and reproducible tags.
 
-The repository now includes an opt-in manual ECR publishing workflow for immutable service image tags. ECR repository provisioning, OIDC role setup in AWS, runtime task/deployment definitions, and environment promotion remain separate concerns.
+The repository now includes an opt-in manual ECR publishing workflow for immutable service image tags, plus a default-disabled Terraform module that can create the ECR repositories and GitHub Actions OIDC publish role. Applying that module in an AWS account is a separate action from publishing images, runtime task/deployment definitions, and environment promotion.
 
 ### Phase 2: AWS networking/config/secrets skeleton
 
@@ -88,11 +88,12 @@ Promote structured logs, metrics, deployment status, and release gates into AWS-
 * CI test execution, Compose validation, and Docker image build validation.
 * Documented container image naming/tagging contract for `query-api`, `processing-agent`, and `producer`.
 * Manual ECR image publishing workflow for the three active service images, using GitHub Actions OIDC and immutable app-version plus git-SHA tags.
+* Default-disabled Terraform module skeleton for the ECR repositories and GitHub Actions OIDC publish role required by that workflow.
 * Initial ECS runtime boundary design for `query-api` and `processing-agent`, with `producer` deferred from the first always-on ECS runtime.
 
 ### Missing before first AWS deployment
 
-* Pre-existing ECR repositories and a GitHub Actions OIDC role in the target AWS account, if they have not already been configured outside this repository.
+* Applied ECR repositories and a GitHub Actions OIDC publish role in the target AWS account. The module exists in this repository, but resources do not exist until Terraform is intentionally enabled and applied for an environment.
 * Additional runtime hardening such as explicit resource limits and production image tagging.
 * Real AWS account, networking, IAM, config, and secrets boundaries beyond the current non-deploying Terraform naming/tag skeleton.
 * ECS task definitions, EKS manifests, or another runtime deployment implementation for the published images.
@@ -117,7 +118,7 @@ Promote structured logs, metrics, deployment status, and release gates into AWS-
 * Region and environment naming: use one primary AWS region for the first deployment, with explicit environment names such as `dev`, `staging`, and `prod`. The local `.env.example` defaults to `AWS_REGION=us-east-1`, but the actual deployment region should be chosen before infrastructure work starts.
 * Runtime target: ECS is the first AWS runtime target. EKS remains a later option if the project needs Kubernetes-specific scheduling, release, operator, or cluster operations.
 * Config and secrets: non-secret values from `.env.example` should map to SSM Parameter Store. Provider API keys such as `GEMINI_API_KEY` and `GOOGLE_API_KEY` should map to Secrets Manager. Long-lived AWS access keys should not be stored in `.env`.
-* Image registry: the first AWS deployment should use published, immutable container image tags in ECR instead of building images on the target runtime. The current manual workflow publishes images only; it does not create repositories or deploy services.
+* Image registry: the first AWS deployment should use published, immutable container image tags in ECR instead of building images on the target runtime. The current manual workflow publishes images only; it does not create repositories or deploy services. The optional Terraform module can create the ECR/OIDC publishing prerequisites, but only after an explicit apply in a target AWS account.
 * State and checkpoint ownership: processing checkpoints should be owned by the stream consumer path, not by the query API. Status/metrics should become observable telemetry rather than shared local files.
 * Vector database compatibility: the selected vector database must preserve the embedding model name and vector dimension expectations currently captured in the local vector store manifest. Changing `OMNISTREAM_EMBEDDING_MODEL_NAME` requires a deliberate reindex or migration.
 * Health checks: `/health` is the initial load balancer and orchestrator health-check candidate for `query-api`. Processing-agent needs an equivalent cloud lifecycle signal through logs, metrics, or task health.
